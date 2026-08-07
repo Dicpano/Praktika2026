@@ -1,0 +1,16 @@
+[
+  { "id": "bbc", "name": "BBC News World", "scope": "global", "oblastIso": null, "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+  { "id": "aljazeera", "name": "Al Jazeera", "scope": "global", "oblastIso": null, "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+  { "id": "guardian", "name": "The Guardian World", "scope": "global", "oblastIso": null, "url": "https://www.theguardian.com/world/rss" },
+
+  { "id": "ukrinform", "name": "Укрінформ", "scope": "national", "oblastIso": null, "url": "https://www.ukrinform.ua/rss/block-lastnews" },
+  { "id": "unian", "name": "УНІАН", "scope": "national", "oblastIso": null, "url": "https://rss.unian.net/site/news_ukr.rss" },
+  { "id": "pravda", "name": "Українська правда", "scope": "national", "oblastIso": null, "url": "https://www.pravda.com.ua/rss/" },
+  { "id": "gazeta", "name": "Gazeta.ua", "scope": "national", "oblastIso": null, "url": "https://gazeta.ua/rss" },
+
+  { "id": "057ua", "name": "057.ua (Харків)", "scope": "regional", "oblastIso": "UA-63", "url": "https://057.ua/rss" },
+  { "id": "dumskaya", "name": "Думська (Одеса)", "scope": "regional", "oblastIso": "UA-51", "url": "https://dumskaya.net/rss/" },
+  { "id": "056ua", "name": "056.ua (Дніпро)", "scope": "regional", "oblastIso": "UA-12", "url": "https://056.ua/rss" },
+  { "id": "0642ua", "name": "0642.ua (Запоріжжя)", "scope": "regional", "oblastIso": "UA-23", "url": "https://www.0642.ua/rss" },
+  { "id": "032ua", "name": "032.ua (Івано-Франківськ)", "scope": "regional", "oblastIso": "UA-26", "url": "https://032.ua/rss" }
+]

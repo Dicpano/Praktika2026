@@ -1,0 +1,4 @@
+{
+  "_comment": "Скопіюйте цей файл у config.local.json і вставте свій токен. config.local.json у git не потрапляє.",
+  "alerts_api_token": "ВСТАВТЕ_СЮДИ_ТОКЕН_З_alerts.in.ua"
+}
