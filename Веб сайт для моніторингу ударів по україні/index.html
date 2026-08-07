@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Моніторинг повітряних тривог України</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛰️</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="disclaimer">
+  ⚠ <strong>Навчальний проєкт.</strong> Стан тривог — з офіційного API
+  <a href="https://alerts.in.ua" target="_blank" rel="noopener noreferrer">alerts.in.ua</a> (коли підключено токен), новини — реальні RSS.
+  Це не заміна офіційного оповіщення — орієнтуйтесь на сирени, застосунок «Повітряна тривога» й вказівки ДСНС.
+</div>
+
+<header class="topbar">
+  <div class="brand"><span class="dot" id="conn-dot"></span> Моніторинг повітряних загроз</div>
+  <nav class="tabs">
+    <button class="active" data-view="dashboard">Карта і стрічка</button>
+    <button data-view="stats">Статистика</button>
+    <button data-view="news">Новини</button>
+    <button data-view="archive">Журнал подій</button>
+    <button data-view="about">Про проєкт</button>
+  </nav>
+  <div class="header-meta"><span id="clock"></span></div>
+</header>
+
+<main>
+
+  <!-- ДАШБОРД: карта + стрічка -->
+  <section id="view-dashboard" class="view active">
+    <div id="alerts-config-banner" class="card" style="display:none; margin-bottom:16px; border-color:#fab219;"></div>
+
+    <div class="grid-dashboard">
+      <div class="card map-card">
+        <div class="map-head">
+          <h2>Карта областей</h2>
+          <span class="updated" id="map-updated">Оновлення…</span>
+        </div>
+        <div id="map"></div>
+        <div class="legend" id="map-legend">
+          <span class="item"><span class="swatch" style="background:#0ca30c"></span>Спокійно</span>
+          <span class="item"><span class="swatch" style="background:#fab219"></span>Повітряна тривога</span>
+          <span class="item"><span class="swatch" style="background:#ec835a"></span>Бойові дії/обстріл</span>
+          <span class="item"><span class="swatch" style="background:#d03b3b"></span>Хімічна/ядерна загроза</span>
+        </div>
+      </div>
+
+      <div class="card feed-card">
+        <h2>Стрічка подій</h2>
+        <div class="filters-row">
+          <select id="feed-filter-oblast"></select>
+          <select id="feed-filter-threat"></select>
+          <select id="feed-filter-hours">
+            <option value="1">Остання година</option>
+            <option value="24" selected>Остання доба</option>
+            <option value="168">Останній тиждень</option>
+          </select>
+        </div>
+        <div id="event-feed"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- СТАТИСТИКА -->
+  <section id="view-stats" class="view">
+    <p class="news-status" style="margin:-4px 0 14px;">
+      Статистика накопичується з моменту запуску сервера (архіву тривог за минулі дні API не надає).
+    </p>
+    <div class="stat-tiles">
+      <div class="stat-tile"><div class="label">Тривог сьогодні</div><div class="value" id="tile-today">—</div></div>
+      <div class="stat-tile"><div class="label">Тривог за тиждень</div><div class="value" id="tile-week">—</div></div>
+      <div class="stat-tile"><div class="label">Областей у тривозі зараз</div><div class="value" id="tile-active">—</div></div>
+      <div class="stat-tile"><div class="label">Найчастіше в тривозі</div><div class="value" id="tile-top-oblast" style="font-size:20px">—</div></div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card chart-card">
+        <h3>Топ-10 областей за кількістю тривог</h3>
+        <div class="subtitle">З моменту запуску сервера · дані alerts.in.ua</div>
+        <canvas id="chart-oblasts"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3>Динаміка тривог</h3>
+        <div class="subtitle">Кількість тривог за добу, з моменту запуску</div>
+        <canvas id="chart-timeline"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3>Розподіл за типом тривоги</h3>
+        <div class="subtitle">Повітряна / загроза артобстрілу / вуличні бої / інше</div>
+        <canvas id="chart-types"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- НОВИНИ -->
+  <section id="view-news" class="view">
+    <div class="card">
+      <h2>Агрегатор новин</h2>
+      <div class="news-controls">
+        <select id="news-filter-scope">
+          <option value="">Усі рівні</option>
+          <option value="global">Глобальні</option>
+          <option value="national">Всеукраїнські</option>
+          <option value="regional">Обласні</option>
+        </select>
+        <select id="news-filter-oblast"></select>
+        <button class="btn" id="news-refresh">Оновити</button>
+        <span class="news-status" id="news-status"></span>
+      </div>
+      <div class="news-grid" id="news-grid"></div>
+    </div>
+  </section>
+
+  <!-- ЖУРНАЛ / АРХІВ -->
+  <section id="view-archive" class="view">
+    <div class="card">
+      <h2>Журнал тривог</h2>
+      <p class="news-status" style="margin:-4px 0 12px;">Журнал накопичується з моменту запуску сервера — архіву тривог за минулі дні alerts.in.ua не надає.</p>
+      <div class="toolbar">
+        <input type="text" id="archive-search" placeholder="Пошук за областю, типом, описом…" style="flex:1; min-width:200px; background:var(--surface-2); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:7px 10px;">
+        <button class="btn" id="archive-export">Експорт CSV</button>
+        <span class="news-status" id="archive-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="archive">
+          <thead>
+            <tr>
+              <th data-key="timestamp">Час</th>
+              <th data-key="oblast">Область</th>
+              <th data-key="threatType">Тип</th>
+              <th>Опис</th>
+            </tr>
+          </thead>
+          <tbody id="archive-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ПРО ПРОЄКТ -->
+  <section id="view-about" class="view">
+    <div class="card about-content">
+      <h2>Про проєкт</h2>
+      <p>Навчальний сайт моніторингу повітряних тривог України в розрізі областей, разом з
+        агрегацією новин глобальних, всеукраїнських та обласних медіа.</p>
+
+      <p><strong>Звідки дані:</strong></p>
+      <ul>
+        <li><strong>Тривоги</strong> — офіційний API <a href="https://alerts.in.ua" target="_blank" rel="noopener noreferrer">alerts.in.ua</a> (реальний стан «оголошено/відбій» по областях). Потребує безкоштовного токена — див. розділ нижче.</li>
+        <li><strong>Новини</strong> — реальні публічні RSS-стрічки (список нижче).</li>
+      </ul>
+      <p><strong>Чого тут немає:</strong> офіційного API з координатами конкретних ударів (Шахед/ракета/КАБ) не
+        існує публічно — такі дані поширюються лише неофіційно (моніторингові Telegram-канали), без
+        гарантії точності, тому в проєкті їх свідомо немає. Це не заміна офіційного оповіщення: для
+        рішень щодо безпеки орієнтуйтесь на сирени, застосунок «Повітряна тривога», офіційний
+        Telegram-канал Повітряних Сил ЗСУ та вказівки ДСНС.</p>
+
+      <h2>Як підключити реальні тривоги</h2>
+      <ol>
+        <li>Подати заявку на токен на <a href="https://alerts.in.ua/api-request" target="_blank" rel="noopener noreferrer">alerts.in.ua/api-request</a> (поле «Галузь використання» → Other).</li>
+        <li>Отримати токен на email.</li>
+        <li>Скопіювати <code>config.example.json</code> → <code>config.local.json</code> і вставити токен у поле <code>alerts_api_token</code> (або задати змінну середовища <code>ALERTS_API_TOKEN</code>).</li>
+        <li>Перезапустити <code>python server.py</code>.</li>
+      </ol>
+      <p id="about-alerts-status" class="news-status" style="font-size:13px;"></p>
+
+      <h2>Джерела новин</h2>
+      <p>Новини на вкладці «Новини» — реальні, отримуються з публічних RSS-стрічок через локальний проксі:</p>
+      <div class="source-list" id="about-sources"></div>
+
+      <h2>Технічна реалізація</h2>
+      <p>Чистий HTML/CSS/JavaScript (без збірки), карта на Leaflet.js, графіки на Chart.js,
+        локальний Python-сервер (лише стандартна бібліотека) роздає статику й проксує RSS та alerts.in.ua.
+        Повне технічне завдання — у файлі <code>TZ.md</code> у корені проєкту.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>Навчальний проєкт · тривоги — alerts.in.ua, новини — реальні RSS</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+<script>
+  fetch('data/rss-sources.json').then(r => r.json()).then(list => {
+    const el = document.getElementById('about-sources');
+    el.innerHTML = list.map(s => `<div>${s.name}</div>`).join('');
+  });
+</script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
