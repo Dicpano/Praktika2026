@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дашборд оперативного огляду обстановки</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="battle-bg">
+  <div class="radar-wrap">
+    <svg viewBox="0 0 520 520" width="520" height="520">
+      <circle cx="260" cy="260" r="240" fill="none" stroke="rgba(122,138,61,.35)"/>
+      <circle cx="260" cy="260" r="170" fill="none" stroke="rgba(122,138,61,.3)"/>
+      <circle cx="260" cy="260" r="100" fill="none" stroke="rgba(122,138,61,.25)"/>
+      <circle cx="260" cy="260" r="30" fill="none" stroke="rgba(122,138,61,.2)"/>
+    </svg>
+    <div class="radar-sweep"></div>
+  </div>
+  <div class="radar-wrap two">
+    <svg viewBox="0 0 520 520" width="520" height="520">
+      <circle cx="260" cy="260" r="240" fill="none" stroke="rgba(74,124,155,.3)"/>
+      <circle cx="260" cy="260" r="140" fill="none" stroke="rgba(74,124,155,.25)"/>
+    </svg>
+    <div class="radar-sweep" style="animation-duration:7s;"></div>
+  </div>
+</div>
+<div class="scanline"></div>
+
+<div class="app">
+
+  <!-- ===================== TOPBAR ===================== -->
+  <div class="topbar">
+    <div class="brand">
+      <svg class="chevron" viewBox="0 0 100 100">
+        <g class="plate">
+          <path d="M50 4 L92 26 V70 L50 96 L8 70 V26 Z" fill="#333d21" stroke="#d8b944" stroke-width="2.5"/>
+          <path d="M50 4 L92 26 V70 L50 96 L8 70 V26 Z" fill="none" stroke="#7a8a3d" stroke-width="1" opacity="0.6"/>
+          <path d="M22 58 L50 30 L78 58 L68 58 L50 42 L32 58 Z" fill="#d8b944"/>
+          <path d="M22 76 L50 48 L78 76 L68 76 L50 60 L32 76 Z" fill="#c7b78a" opacity="0.85"/>
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#4a7c9b" stroke-width="1.4" opacity="0.6"/>
+        </g>
+      </svg>
+      <div>
+        <div class="brand-title" id="unit-name">N-на окрема механізована бригада</div>
+        <div class="brand-sub">J2 · Інформаційно-аналітичний відділ · Дашборд оперативного огляду</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:22px;">
+      <span class="status-pill"><span class="dot"></span> Підвищена активність — Східний напрямок</span>
+      <div class="clock">
+        <div class="time" id="clock-time">--:--:--</div>
+        <div class="date" id="clock-date">--.--.----</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== KPI CARDS ===================== -->
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- ===================== ROW 1: timeline + structure ===================== -->
+  <div class="grid cols-12" style="margin-bottom:18px;">
+    <div class="panel span-7" style="animation-delay:.05s;">
+      <div class="panel-head">
+        <div class="section-title">Динаміка атак за напрямками</div>
+        <div class="section-hint">14 діб, лінійний графік</div>
+      </div>
+      <canvas id="chart-timeline" height="115"></canvas>
+    </div>
+    <div class="panel span-5" style="animation-delay:.1s;">
+      <div class="panel-head">
+        <div class="section-title">Структура сил противника</div>
+        <div class="section-hint">% від загального угруповання</div>
+      </div>
+      <canvas id="chart-structure" height="150"></canvas>
+    </div>
+  </div>
+
+  <!-- ===================== ROW 2: bar compare + readiness radar ===================== -->
+  <div class="grid cols-12" style="margin-bottom:18px;">
+    <div class="panel span-6" style="animation-delay:.15s;">
+      <div class="panel-head">
+        <div class="section-title">Порівняння напрямків</div>
+        <div class="section-hint">Сумарна кількість атак за 14 діб</div>
+      </div>
+      <canvas id="chart-bars" height="150"></canvas>
+    </div>
+    <div class="panel span-6" style="animation-delay:.2s;">
+      <div class="panel-head">
+        <div class="section-title">Боєздатність підрозділів (readiness)</div>
+        <div class="section-hint">5 параметрів, 3 БТГр</div>
+      </div>
+      <canvas id="chart-radar" height="150"></canvas>
+    </div>
+  </div>
+
+  <!-- ===================== ROW 3: map + network ===================== -->
+  <div class="grid cols-12" style="margin-bottom:18px;">
+    <div class="panel span-7" style="animation-delay:.25s;">
+      <div class="panel-head">
+        <div class="section-title">Карта подій (схематична)</div>
+        <div class="section-hint">умовні координати відносно лінії фронту</div>
+      </div>
+      <div class="map-wrap" id="map-wrap">
+        <div class="map-grid"></div>
+        <div class="map-front-line"></div>
+      </div>
+      <div class="map-tooltip" id="map-tooltip">Наведіть курсор на маркер для деталей події</div>
+      <div class="legend">
+        <span><i style="background:var(--alert-red)"></i> висока інтенсивність</span>
+        <span><i style="background:var(--accent-yellow)"></i> середня</span>
+        <span><i style="background:var(--olive-500)"></i> низька</span>
+      </div>
+    </div>
+    <div class="panel span-5 network-wrap" style="animation-delay:.3s;">
+      <div class="panel-head">
+        <div class="section-title">Мережа взаємодії (J-структура)</div>
+        <div class="section-hint">штаб → штабні відділи → підрозділи</div>
+      </div>
+      <svg id="network-svg" viewBox="0 0 720 340"></svg>
+    </div>
+  </div>
+
+  <!-- ===================== ROW 4: heatmap + table ===================== -->
+  <div class="grid cols-12" style="margin-bottom:18px;">
+    <div class="panel span-5" style="animation-delay:.35s;">
+      <div class="panel-head">
+        <div class="section-title">Кореляція факторів втрат противника</div>
+        <div class="section-hint">коефіцієнт Пірсона, синтетичні дані</div>
+      </div>
+      <div id="heatmap"></div>
+    </div>
+    <div class="panel span-7" style="animation-delay:.4s;">
+      <div class="panel-head">
+        <div class="section-title">Журнал подій</div>
+        <div class="section-hint">останні зафіксовані події</div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Час</th><th>Напрямок</th><th>Тип події</th><th>Інтенсивність</th></tr>
+        </thead>
+        <tbody id="events-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== CONCLUSIONS ===================== -->
+  <div class="panel span-12" style="animation-delay:.45s;">
+    <div class="panel-head">
+      <div class="section-title">Аналітичні висновки</div>
+      <div class="section-hint">формуються автоматично за методикою (п.3 методики заняття)</div>
+    </div>
+    <ul class="conclusions">
+      <li><b>Тренд:</b> найвища активність — <b>Східний напрямок</b> (пік 33 атаки на добу 12.09), стійке зростання з 05.09.</li>
+      <li><b>Структура сил:</b> переважає піхота (42%) у поєднанні з БПЛА-розвідкою (13%) — ознака підготовки штурмових дій.</li>
+      <li><b>Готовність:</b> 2-й БТГр має знижені показники забезпечення (65%) — потребує пріоритетного поповнення.</li>
+      <li><b>Кореляція:</b> інтенсивність атак сильно обернено пов'язана з відстанню до переднього краю (r = −0.61) — очікувано концентрація ударів по передовій.</li>
+      <li><b>Рекомендація:</b> посилити протидію БПЛА на Східному напрямку та перерозподілити резерви на користь 2-го БТГр.</li>
+    </ul>
+  </div>
+
+  <div class="footer-note">Дашборд згенеровано на синтетичних (умовних) даних · Практична робота 5.3 · Методологія відображення даних в інтересах ІАЗ</div>
+</div>
+
+<!-- Chart.js: локальна копія в проєкті (працює офлайн), CDN — лише як резерв -->
+<script src="vendor/chart.umd.js" onerror="document.write('&lt;script src=\'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js\'&gt;&lt;\/script&gt;')"></script>
+<script src="data.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
