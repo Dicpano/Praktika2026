@@ -1,0 +1,22 @@
+{
+  "data": {
+    "seed": 42,
+    "days": 120,
+    "points_per_day": 144,
+    "n_anomalies": 70,
+    "val_frac": 0.2,
+    "test_frac": 0.2,
+    "test_drift": 1.0
+  },
+  "windows": {
+    "window": 36,
+    "step": 6
+  },
+  "training": {
+    "seed": 42,
+    "epochs": 60,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "early_stopping_patience": 6
+  }
+}

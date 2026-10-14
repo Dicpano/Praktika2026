@@ -1,0 +1,5 @@
+Run,Model,Train loss,Val loss,Gap (val-train),Val F1,Val PR-AUC,Val FA/day,Epochs,"Time, s",Decision
+B0,max |z| threshold,,,,0.6631,0.7482,2.8161,,1.4537,reference
+D1,Dense AE,0.1769,0.1843,0.0075,0.8299,0.9046,0.5464,60.0,22.0241,SELECTED
+D2,Dense AE + Dropout 0.2 + L2 1e-4,0.2982,0.2619,-0.0363,0.809,0.8895,1.2189,60.0,23.1591,rejected
+D3,Conv1D AE,0.046,0.0488,0.0029,0.7214,0.8362,1.4711,60.0,35.8237,rejected
