@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Аналітика втрат противника — дашборд</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="chevron" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M50 4 L92 26 V70 L50 96 L8 70 V26 Z" fill="#333d21" stroke="#d8b944" stroke-width="3"/>
+      <path d="M22 58 L50 30 L78 58 L68 58 L50 42 L32 58 Z" fill="#d8b944"/>
+      <path d="M22 76 L50 48 L78 76 L68 76 L50 60 L32 76 Z" fill="#c7b78a" opacity=".85"/>
+    </svg>
+    <div>
+      <h1>Аналітика втрат противника</h1>
+      <div class="sub">Практична робота 5.5 · Візуалізація різних типів даних</div>
+    </div>
+  </div>
+  <div class="meta">
+    <div>Дані станом на <b id="data-date">—</b></div>
+    <div class="dim" id="data-day">—</div>
+  </div>
+</header>
+
+<main class="app">
+
+  <!-- ========== KPI (скалярні показники) ========== -->
+  <section class="kpi-grid" id="kpi-grid"></section>
+
+  <!-- ========== Фільтр періоду ========== -->
+  <section class="toolbar">
+    <span class="dim">Період для часових графіків:</span>
+    <div class="seg" id="period">
+      <button data-p="all" class="active">Весь період</button>
+      <button data-p="365">12 місяців</button>
+      <button data-p="90">90 днів</button>
+      <button data-p="30">30 днів</button>
+    </div>
+  </section>
+
+  <section class="grid">
+    <!-- 1. Часовий ряд: накопичувальні -->
+    <article class="panel">
+      <div class="panel-head"><h2>Накопичувальні втрати особового складу</h2><span class="chip">часовий ряд · накопичувальний</span></div>
+      <div class="chart-box"><canvas id="ch-cum"></canvas></div>
+    </article>
+
+    <!-- 2. Часовий ряд: інтенсивність -->
+    <article class="panel">
+      <div class="panel-head"><h2>Добова інтенсивність</h2><span class="chip">часовий ряд · добовий приріст</span></div>
+      <div class="controls">
+        <select id="daily-metric">
+          <option value="personnel_daily">Особовий склад</option>
+          <option value="drone_daily">БпЛА</option>
+          <option value="artillery_daily">Артсистеми</option>
+          <option value="tank_daily">Танки</option>
+        </select>
+        <span class="dim">стовпці — доба, лінія — ковзне середнє 7 діб</span>
+      </div>
+      <div class="chart-box"><canvas id="ch-daily"></canvas></div>
+    </article>
+
+    <!-- 3. Категоріальні -->
+    <article class="panel">
+      <div class="panel-head"><h2>Структура втрат техніки</h2><span class="chip">категоріальні · порівняння величин</span></div>
+      <div class="controls">
+        <label class="check"><input type="checkbox" id="log-scale" checked> логарифмічна шкала</label>
+        <span class="dim">категорії відрізняються на 4 порядки</span>
+      </div>
+      <div class="chart-box tall"><canvas id="ch-structure"></canvas></div>
+    </article>
+
+    <!-- 4. Порівняння періодів -->
+    <article class="panel">
+      <div class="panel-head"><h2>Середньодобові втрати за роками</h2><span class="chip">агреговані · порівняння періодів</span></div>
+      <div class="controls">
+        <select id="year-metric">
+          <option value="personnel">Особовий склад</option>
+          <option value="drone">БпЛА</option>
+          <option value="artillery">Артсистеми</option>
+          <option value="tank">Танки</option>
+        </select>
+        <span class="dim">рік 2022 і 2026 неповні — тому середнє на добу</span>
+      </div>
+      <div class="chart-box tall"><canvas id="ch-years"></canvas></div>
+    </article>
+
+    <!-- 5. Матриця -->
+    <article class="panel wide">
+      <div class="panel-head"><h2>Теплова карта: середньодобові втрати особового складу</h2><span class="chip">матриця · рік × місяць</span></div>
+      <div class="heatmap-wrap"><table class="heatmap" id="heatmap"></table></div>
+      <div class="legend-bar"><span id="hm-min"></span><div class="bar"></div><span id="hm-max"></span></div>
+    </article>
+
+    <!-- 6. Геопросторові -->
+    <article class="panel wide">
+      <div class="panel-head"><h2>Напрямки найбільших втрат</h2><span class="chip">геопросторові · точки на карті</span></div>
+      <div class="controls"><span class="dim" id="geo-note"></span></div>
+      <div class="map-row">
+        <div id="map"></div>
+        <ol class="rank" id="geo-rank"></ol>
+      </div>
+    </article>
+
+    <!-- 7. Таблиця -->
+    <article class="panel wide">
+      <div class="panel-head"><h2>Журнал корекцій даних</h2><span class="chip">табличні · журнал записів</span></div>
+      <div class="controls">
+        <input type="search" id="corr-search" placeholder="Пошук за категорією або датою…">
+        <span class="dim" id="corr-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="corr-table">
+          <thead><tr><th>Дата</th><th>День</th><th>Корекції (зміна значення)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+</main>
+
+<footer class="footer">
+  Джерело: <span id="source"></span>. Межі областей: geoBoundaries / OpenStreetMap.
+  Навчальна візуалізація відкритих даних.
+</footer>
+
+<script src="vendor/chart.umd.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data/data.js"></script>
+<script src="data/oblasts.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
