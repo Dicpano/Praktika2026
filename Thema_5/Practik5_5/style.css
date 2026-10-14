@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root{
+  --olive-950:#1c2213;
+  --olive-900:#232b18;
+  --olive-800:#333d21;
+  --olive-700:#4b5320;
+  --olive-500:#7a8a3d;
+  --sand:#c7b78a;
+  --accent-yellow:#d8b944;
+  --nato-blue:#4a7c9b;
+  --alert-red:#a4372a;
+  --text-light:#eef0e4;
+  --text-dim:#a9b090;
+  --panel-bg:rgba(35,43,24,0.92);
+  --panel-border:rgba(199,183,138,0.25);
+}
+
+*{ box-sizing:border-box; }
+
+html,body{
+  margin:0; padding:0;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(122,138,61,0.14), transparent 50%),
+    linear-gradient(180deg,var(--olive-950),var(--olive-900) 70%,#151a0f) fixed;
+  color:var(--text-light);
+  font-family:'Rajdhani',sans-serif;
+  font-size:16px;
+}
+
+h1,h2{ font-family:'Oswald',sans-serif; letter-spacing:.03em; text-transform:uppercase; margin:0; }
+h1{ font-size:1.5rem; color:var(--accent-yellow); }
+h2{ font-size:1rem; font-weight:500; }
+.dim{ color:var(--text-dim); font-size:.9rem; }
+
+/* ---------- topbar ---------- */
+.topbar{
+  display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:14px 28px; border-bottom:1px solid var(--panel-border);
+  background:rgba(28,34,19,0.85); position:sticky; top:0; z-index:1000; backdrop-filter:blur(4px);
+}
+.brand{ display:flex; align-items:center; gap:14px; }
+.chevron{ width:46px; height:46px; }
+.sub{ color:var(--text-dim); font-size:.95rem; }
+.meta{ text-align:right; }
+.meta b{ color:var(--accent-yellow); }
+
+.app{ max-width:1500px; margin:0 auto; padding:20px 24px 10px; }
+
+/* ---------- KPI ---------- */
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:16px; }
+.kpi{
+  background:var(--panel-bg); border:1px solid var(--panel-border); border-left:4px solid var(--accent-yellow);
+  border-radius:6px; padding:14px 16px;
+}
+.kpi .label{ color:var(--text-dim); text-transform:uppercase; font-size:.8rem; letter-spacing:.06em; }
+.kpi .value{ font-family:'Oswald',sans-serif; font-size:2rem; line-height:1.15; }
+.kpi .delta{ color:var(--accent-yellow); font-weight:600; }
+
+/* ---------- toolbar ---------- */
+.toolbar{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.seg{ display:inline-flex; border:1px solid var(--panel-border); border-radius:6px; overflow:hidden; }
+.seg button{
+  background:transparent; color:var(--text-light); border:0; padding:7px 14px; cursor:pointer;
+  font:600 .95rem 'Rajdhani',sans-serif;
+}
+.seg button + button{ border-left:1px solid var(--panel-border); }
+.seg button.active{ background:var(--olive-700); color:var(--accent-yellow); }
+.seg button:hover:not(.active){ background:rgba(122,138,61,0.2); }
+
+/* ---------- panels ---------- */
+.grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
+.panel{
+  background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:6px;
+  padding:14px 16px; min-width:0;
+}
+.panel.wide{ grid-column:1 / -1; }
+.panel-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.chip{
+  font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px;
+  border:1px solid var(--nato-blue); color:#a9cbe0; background:rgba(74,124,155,0.15); white-space:nowrap;
+}
+.controls{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+select, input[type=search]{
+  background:var(--olive-900); color:var(--text-light); border:1px solid var(--panel-border);
+  border-radius:4px; padding:6px 10px; font:500 .95rem 'Rajdhani',sans-serif;
+}
+input[type=search]{ min-width:260px; }
+.check{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+
+.chart-box{ position:relative; height:300px; }
+.chart-box.tall{ height:360px; }
+
+/* ---------- heatmap ---------- */
+.heatmap-wrap{ overflow-x:auto; }
+.heatmap{ border-collapse:separate; border-spacing:3px; width:100%; min-width:720px; }
+.heatmap th{ color:var(--text-dim); font-weight:600; font-size:.85rem; padding:4px; }
+.heatmap td{
+  text-align:center; padding:9px 4px; border-radius:3px; font-weight:600; font-size:.9rem; color:#111;
+}
+.heatmap td.empty{ background:rgba(255,255,255,0.04); color:var(--text-dim); }
+.legend-bar{ display:flex; align-items:center; gap:8px; margin-top:8px; color:var(--text-dim); font-size:.85rem; }
+.legend-bar .bar{ flex:0 0 220px; height:10px; border-radius:5px;
+  background:linear-gradient(90deg,#e8dfc3,#d8b944,#c0662d,#7d1f17); }
+
+/* ---------- map ---------- */
+.map-row{ display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:14px; }
+#map{ height:440px; border-radius:6px; border:1px solid var(--panel-border); background:#1a2012; }
+.leaflet-container{ font-family:'Rajdhani',sans-serif; }
+.rank{ margin:0; padding:0 14px 0 22px; max-height:440px; overflow:auto; }
+.rank li{ padding:4px 0; border-bottom:1px dashed var(--panel-border); cursor:pointer; }
+.rank li:hover{ color:var(--accent-yellow); }
+.rank b{ float:right; color:var(--accent-yellow); }
+
+/* ---------- table ---------- */
+.table-wrap{ max-height:340px; overflow:auto; }
+.data-table{ width:100%; border-collapse:collapse; }
+.data-table th{
+  position:sticky; top:0; background:var(--olive-800); text-align:left; padding:8px 10px;
+  font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; font-size:.85rem;
+}
+.data-table td{ padding:7px 10px; border-bottom:1px solid rgba(199,183,138,0.12); vertical-align:top; }
+.data-table tr:hover td{ background:rgba(122,138,61,0.12); }
+.tag{ display:inline-block; margin:2px 6px 2px 0; padding:1px 8px; border-radius:3px; font-size:.85rem; }
+.tag.pos{ background:rgba(164,55,42,0.35); }
+.tag.neg{ background:rgba(74,124,155,0.35); }
+
+.footer{ text-align:center; color:var(--text-dim); font-size:.85rem; padding:18px; }
+
+@media (max-width: 1000px){
+  .grid{ grid-template-columns:1fr; }
+  .map-row{ grid-template-columns:1fr; }
+  .rank{ max-height:none; }
+  .topbar{ padding:12px 16px; }
+  .app{ padding:16px; }
+}
