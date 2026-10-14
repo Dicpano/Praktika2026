@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Оперативний Дашборд</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <h1>Оперативний Дашборд</h1>
+    <div class="sub">Міні ІАС · PostgreSQL → FastAPI → Web · навчальні умовні дані</div>
+  </div>
+  <nav class="views" id="views">
+    <a data-view="executive">Executive</a>
+    <a data-view="analyst">Analyst</a>
+    <a data-view="demo">Demo</a>
+  </nav>
+</header>
+
+<div class="banner" id="banner" hidden></div>
+
+<main class="app">
+  <!-- Фільтри (централізовані) -->
+  <section class="panel filters">
+    <label>Від <input type="date" id="f-from"></label>
+    <label>До <input type="date" id="f-to"></label>
+    <label>Сектор <select id="f-sector"><option value="">усі</option></select></label>
+    <label>Напрямок <select id="f-direction"><option value="">усі</option></select></label>
+    <label>Тип події <select id="f-type"><option value="">усі</option></select></label>
+    <label>Мін. інтенсивність <input type="number" id="f-min" min="1" max="50" placeholder="1–50"></label>
+    <div class="btns">
+      <button id="apply" class="primary">Apply</button>
+      <button id="reset">Скинути</button>
+    </div>
+  </section>
+
+  <!-- KPI -->
+  <section class="kpi-grid">
+    <div class="kpi"><div class="label">Інцидентів</div><div class="value" id="k-total">—</div></div>
+    <div class="kpi"><div class="label">Сумарна інтенсивність</div><div class="value" id="k-sum">—</div></div>
+    <div class="kpi"><div class="label">Середня інтенсивність</div><div class="value" id="k-avg">—</div></div>
+    <div class="kpi"><div class="label">Найактивніший напрямок</div><div class="value small" id="k-top">—</div></div>
+  </section>
+
+  <!-- Інсайт (executive) -->
+  <section class="panel insight" data-show="executive">
+    <h2>Інсайт</h2>
+    <p id="insight">—</p>
+  </section>
+
+  <section class="grid">
+    <article class="panel wide" data-show="executive analyst demo">
+      <div class="panel-head">
+        <h2>Тренд інцидентів</h2>
+        <div class="seg" id="trend-group">
+          <button data-g="day" class="active">По днях</button><button data-g="week">По тижнях</button>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="ch-trend"></canvas></div>
+    </article>
+
+    <article class="panel" data-show="analyst demo">
+      <h2>Розподіл за напрямками</h2>
+      <div class="chart-box"><canvas id="ch-dir"></canvas></div>
+    </article>
+
+    <article class="panel" data-show="analyst demo">
+      <h2>Розподіл за типами подій</h2>
+      <div class="chart-box"><canvas id="ch-type"></canvas></div>
+    </article>
+
+    <article class="panel wide" data-show="analyst demo">
+      <h2>Heatmap: сектор × тиждень <span class="dim">(кількість інцидентів; тиждень — дата понеділка)</span></h2>
+      <div class="heatmap-wrap"><table class="heatmap" id="heatmap"></table></div>
+    </article>
+
+    <article class="panel wide" data-show="analyst">
+      <div class="panel-head">
+        <h2>Інциденти</h2>
+        <div class="pager">
+          <label>На сторінці
+            <select id="page-size"><option>10</option><option selected>20</option><option>50</option></select>
+          </label>
+          <button id="prev">‹</button><span id="page-info">—</span><button id="next">›</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="inc-table">
+          <thead><tr>
+            <th data-sort="occurred_at">Час</th><th data-sort="sector">Сектор</th><th data-sort="direction">Напрямок</th>
+            <th data-sort="event_type">Тип</th><th data-sort="intensity">Інтенсивність</th>
+            <th class="col-source">Джерело</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+</main>
+
+<!-- Модальне вікно деталей -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-card">
+    <button class="close" id="modal-close" aria-label="Закрити">×</button>
+    <h2 id="m-title">Інцидент</h2>
+    <dl id="m-body"></dl>
+  </div>
+</div>
+
+<footer class="footer">Навчальна модель. Дані синтетичні та не відображають реальних подій.</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
