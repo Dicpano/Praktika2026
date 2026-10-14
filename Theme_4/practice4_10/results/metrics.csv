@@ -1,0 +1,3 @@
+,precision,recall,f1,pr_auc,false_alarms,false_alarms_per_day
+B0 baseline,0.3114,0.4522,0.3688,0.433,115.0,4.8336
+D1 (final),0.6891,0.713,0.7009,0.7845,37.0,1.5552

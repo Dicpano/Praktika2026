@@ -1,0 +1,5 @@
+anomaly_type,windows,recall B0,recall D1
+spike,23,1.0,1.0
+level_shift,21,0.333,0.667
+vib_oscillation,10,1.0,0.9
+decorrelation,61,0.197,0.59
