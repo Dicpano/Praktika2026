@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TL-LAB :: CYBER-OPS</title>
+<link rel="icon" href="/static/favicon.ico">
+<link rel="stylesheet" href="/static/css/app.css">
+<script defer src="/static/vendor/plotly-cartesian.min.js"></script>
+</head>
+<body class="anim">
+<canvas id="tl-bg"></canvas>
+<aside id="side">
+  <a href="#/" title="Ситуаційна панель"><img class="logo" src="/static/logo.svg" alt="TL-LAB"></a>
+  <nav class="nav" id="nav"></nav>
+  <div class="side-sep"></div>
+  <div id="jobs-mini"></div>
+  <label class="side-row" title="Великі табло «до → після», службові параметри приховано">
+    <input type="checkbox" id="present"> Режим «Доповідь»
+  </label>
+</aside>
+<main id="main"><div id="page"></div></main>
+<div id="toasts"></div>
+<script>window.__tlbg = {mode: "off", k: 0.5};</script>
+<script src="/static/js/bg.js"></script>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
