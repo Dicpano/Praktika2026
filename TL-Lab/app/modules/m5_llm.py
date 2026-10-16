@@ -205,7 +205,7 @@ def to_gift(items: list[dict], title: str = "TL-Lab") -> str:
     """Формат Moodle GIFT: імпорт у банк запитань Moodle."""
     def esc(x: str) -> str:
         return "".join("\\" + ch if ch in "~=#{}:" else ch for ch in str(x))
-    out = [f"// {title}: згенеровано TL-Лабораторією, перевірено викладачем", ""]
+    out = [f"// {title}: згенеровано Transfer Learning-лабораторією, перевірено викладачем", ""]
     for i, it in enumerate(items, 1):
         if not it.get("question"):
             continue

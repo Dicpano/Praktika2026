@@ -1,4 +1,4 @@
-/* TL-Лабораторія 3.0 — тема «Кіберзахист». Без зовнішніх шрифтів: працює офлайн. */
+/* Transfer Learning-лабораторія 3.1 — тема «Кіберзахист». Без зовнішніх шрифтів: працює офлайн. */
 :root{
   --bg:#05070a; --panel:#0b1219; --panel2:#08111a; --line:#12313a; --line2:#1c4a55;
   --cyan:#00e5ff; --cyan-dim:#0e7c8a; --text:#b8f3ff; --muted:#5f8f99; --white:#e6fdff;
@@ -26,7 +26,7 @@ a{color:var(--cyan)}
 #main{position:relative;z-index:2;margin-left:var(--side);min-height:100vh;padding:26px 42px 60px;
   background:radial-gradient(ellipse 70% 60% at 40% 30%, rgba(5,7,10,.72), rgba(5,7,10,.35) 70%, transparent)}
 #page{max-width:1500px}
-.logo{display:block;margin:0 0 18px 4px;width:210px}
+.logo{display:block;margin:0 0 18px 4px;width:100%;max-width:290px}
 .nav-h{color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-size:.68rem;margin:16px 6px 6px}
 .nav a{display:flex;gap:10px;align-items:center;color:var(--text);text-decoration:none;padding:8px 10px;font-size:.86rem;
   border-left:2px solid transparent;transition:background .15s,border-color .15s}
@@ -203,3 +203,18 @@ mark{background:rgba(0,229,255,.25);color:var(--white)}
 
 .plot{width:100%;min-height:260px}
 table.t audio{min-width:230px}
+/* «Чому так вийшло» */
+.why{list-style:none;margin:0;padding:0}
+.why li{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);line-height:1.55}
+.why li:last-child{border-bottom:0}
+.why .wi{flex:0 0 18px;color:var(--cyan);font-weight:700}
+.why .w-ok .wi{color:var(--good)}.why .w-wr .wi{color:var(--warn)}.why .w-tip .wi{color:#c792ff}
+.why-panel{border-left:3px solid var(--cyan)}
+details.howto{margin:8px 0 0;border-style:dashed}details.howto>summary{color:var(--cyan);font-size:.9em;padding:6px 12px}
+details.howto p{margin:4px 0 0;line-height:1.6}
+details.steps ol{margin:6px 0 0;padding-left:22px;line-height:1.6}details.steps li{margin:4px 0}
+
+.off-btn{display:block;width:100%;box-sizing:border-box;margin:10px 0 0;border-color:#5a2a35;color:#ff9fb0;background:transparent}
+.off-btn:hover,.off-btn.armed{border-color:var(--bad);color:#fff;background:rgba(255,59,92,.25)}
+.bye{max-width:620px;margin:18vh auto;padding:30px;border:1px solid var(--line2);background:rgba(8,14,20,.95);text-align:center}
+.bye h1{color:var(--cyan);margin-top:0}

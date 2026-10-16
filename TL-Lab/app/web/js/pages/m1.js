@@ -1,6 +1,6 @@
 // Модуль 01 — класифікація техніки й позицій на фото (ResNet18 + Grad-CAM).
 import { h, api, mount, panel, alert, btn, field, slider, check, loading, kpis, runCaption, confusion, plot, probBars,
-  jobPanel, run, filePick, lightbox, termify, S, pct } from '../ui.js';
+  jobPanel, run, filePick, lightbox, termify, S, pct, why, howto, steps } from '../ui.js';
 import { modulePage, modelCard, noResult } from './_module.js';
 
 export const render = (root, ctx) => modulePage(root, ctx, {
@@ -35,7 +35,14 @@ async function adapt(sec, ctx) {
       field('Розморозити layer4', check('довше, але точніше на нетипових ракурсах', false, v => { p.unfreeze = v; }))),
     h('p.small.muted', 'Спершу навчається базовий варіант (без аугментації), потім — з аугментацією. Класи з менш ніж 5 фото пропускаються. На CPU 5–15 хв.'),
     btn('▶ Запустити адаптацію', () => run('/api/m1/train', p), 'primary'));
-  mount(sec, form, jobPanel('m1', () => ctx.go('eval')));
+  mount(sec, form, steps([
+    'Фото кожного класу діляться на **навчальні (70 %)** і **тестові (30 %)**. Тестові модель під час навчання не бачить — на них потім перевіряємо чесно.',
+    'Береться готова **ResNet18** (навчена на 1,28 млн фото ImageNet). Її останній шар (1000 класів ImageNet) замінюється новим — на наші класи.',
+    'Усі інші шари **заморожені**: вони вже вміють бачити краї, текстури, форми. Навчається лише новий шар' + ' (і layer4, якщо поставити галочку «Розморозити»).',
+    '**Базовий варіант**: навчання без аугментації — фото подаються як є.',
+    '**Адаптований варіант**: те саме, але з **аугментацією** — фото щоразу трохи повертаються, віддзеркалюються, змінюється яскравість. Так модель вчиться не зважати на ракурс і світло.',
+    'Обидва варіанти перевіряються на тестових фото → на вкладці «Оцінювання» видно, скільки фото кожного класу розпізнано правильно і з чим модель плутає.',
+  ]), jobPanel('m1', () => ctx.go('eval')));
 }
 
 async function evaluate(sec, ctx) {
@@ -43,11 +50,12 @@ async function evaluate(sec, ctx) {
   if (!r.entry) { mount(sec, noResult(ctx)); return; }
   const m = r.entry.metrics, labels = Object.values(r.labels);
   const errs = h('div');
-  mount(sec, runCaption(r.entry), kpis(m, ['accuracy', 'f1_macro']),
+  mount(sec, runCaption(r.entry), kpis(m, ['accuracy', 'f1_macro']), howto('kpi'),
+    why(r.why),
     h('div.grid.g2', panel('Базовий рівень (без аугментації)', confusion(m.baseline.confusion, labels)),
-      panel('Адаптована модель', confusion(m.adapted.confusion, labels))),
+      panel('Адаптована модель (з аугментацією)', confusion(m.adapted.confusion, labels))), howto('confusion'),
     r.loss ? panel('Крива втрат (адаптація)', plot([{ y: r.loss, x: r.loss.map((_, i) => i + 1), mode: 'lines+markers', line: { color: '#00e5ff' } }],
-      { xaxis: { title: 'епоха' }, yaxis: { title: 'loss' } }, 240)) : null,
+      { xaxis: { title: 'епоха' }, yaxis: { title: 'loss' } }, 240), howto('loss')) : null,
     h('h2', `Помилки на тесті з Grad-CAM (${r.errors.length})`), errs);
   if (!r.errors.length) { errs.append(alert('На тестовій вибірці помилок немає.', 'ok')); return; }
   for (const e of r.errors) {
