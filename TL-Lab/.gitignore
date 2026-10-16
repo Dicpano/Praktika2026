@@ -1,0 +1,11 @@
+runtime/
+install.log
+app/models/
+app/logs/
+app/results/figs/
+app/results/*.joblib
+app/settings.json
+__pycache__/
+.pytest_cache/
+app/results/results.json
+app/results/report_*.md
