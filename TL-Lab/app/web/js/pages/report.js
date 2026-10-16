@@ -1,5 +1,5 @@
-// Звіт і слайди: висновок за шаблоном, Markdown-звіт і 2 слайди PowerPoint для доповіді.
-import { h, api, mount, alert, btn, header, tabs, kpis, runCaption, download, field, md, panel } from '../ui.js';
+// Звіт і слайди: автоматичний висновок, 6 слайдів модуля з тезами, загальна доповідь (10 слайдів), Markdown-звіт.
+import { h, api, mount, alert, btn, header, tabs, kpis, runCaption, download, field, md, panel, why, table, toast } from '../ui.js';
 
 const KEY = { cur: 'm1' };
 const SAVED = (() => { try { return JSON.parse(localStorage.getItem('report') || '{}'); } catch (e) { return {}; } })();
@@ -23,22 +23,51 @@ export async function render(root) {
     const k = KEY.cur;
     const r = await api('/api/report/' + k);
     const s = SAVED[k] || (SAVED[k] = { errors: '', limits: '', conclusion: '', repo: 'https://github.com/Dicpano/Praktika2026' });
-    const ta = (key, ph, rows = 3) => { const t = h('textarea', { rows, placeholder: ph }); t.value = s[key]; t.addEventListener('input', () => { s[key] = t.value; try { localStorage.setItem('report', JSON.stringify(SAVED)); } catch (e) { /* */ } }); return t; };
+    const store = () => { try { localStorage.setItem('report', JSON.stringify(SAVED)); } catch (e) { /* */ } };
+    const areas = {};
+    const ta = (key, rows = 3) => {
+      const t = h('textarea', { rows, placeholder: (r.auto && r.auto[key]) || HINT[k][key === 'errors' ? 0 : 1] });
+      t.value = s[key];
+      t.addEventListener('input', () => { s[key] = t.value; store(); });
+      areas[key] = t;
+      return t;
+    };
+    const speaker = h('input', { value: SAVED.speaker || '', placeholder: 'Напр.: підполковник Прізвище І. П., група 5202 (на титульному слайді)' });
+    speaker.addEventListener('input', () => { SAVED.speaker = speaker.value; store(); });
+    const body = () => ({ ...s, speaker: SAVED.speaker || '' });
     const preview = h('div');
-    mount(box, tabs(['m1', 'm2', 'm3', 'm4', 'm5', 'm6'].map(x => [x, 'MOD-0' + x[1]]), k, x => { KEY.cur = x; draw(); }, 'small'),
+    mount(box,
+      panel('Загальна доповідь — усі 6 модулів одним файлом',
+        h('p', 'Титул → що таке transfer learning → по слайду на кожен модуль (головна цифра, графік, пояснення) → підсумкова таблиця → висновки. ' +
+          'Цифри беруться з останніх запусків; до кожного слайда — тези для виступу в нотатках (режим доповідача PowerPoint).'),
+        table([['title', 'Модуль'], ['metric', 'Метрика'], [x => x.done ? `${x.before} → ${x.after}` : h('span.c-wr', 'ще не запускали'), 'До → після']],
+          r.summary || [], { scroll: false }),
+        field('Доповідач (необов\'язково)', speaker),
+        h('div.row', { style: { marginTop: '10px' } },
+          btn('⤓ Загальна доповідь (10 слайдів)', () => download('/api/report/all/pptx', body(), 'TL-Lab_dopovid.pptx'), 'primary'))),
+      h('h2', 'Звіт і слайди окремого модуля'),
+      tabs(['m1', 'm2', 'm3', 'm4', 'm5', 'm6'].map(x => [x, 'MOD-0' + x[1]]), k, x => { KEY.cur = x; draw(); }, 'small'),
       h('h2', r.card.title),
-      r.entry ? h('div', runCaption(r.entry), kpis(r.entry.metrics, KPI[k])) : alert('Для цього модуля ще немає запусків — звіт буде без цифр.', 'wr'),
-      h('h2', 'Висновок за шаблоном'),
-      h('div.grid.g2', field('1–2 типові помилки та їх причина', ta('errors', HINT[k][0])), field('Обмеження', ta('limits', HINT[k][1]))),
-      field('Висновок: переваги повторного використання моделі та що покращить результат', ta('conclusion', 'Напр.: готова модель дала F1 0,9 на 30 фото на клас; без неї знадобилися б тисячі фото. Покращити: більше даних, нічні знімки, розморозити layer4.', 4)),
-      field('Посилання на GitHub', (() => { const i = h('input', { value: s.repo }); i.addEventListener('input', () => { s.repo = i.value; }); return i; })()),
+      r.entry ? h('div', runCaption(r.entry), kpis(r.entry.metrics, KPI[k])) : alert('Для цього модуля ще немає запусків — звіт буде без цифр. Запустіть адаптацію у вкладці модуля.', 'wr'),
+      why(r.why, 'Чому так вийшло (піде на слайд 5)'),
+      h('h2', 'Висновок'),
+      h('p.small.muted', 'Поля вже заповнені автоматично з результатів (сірий текст). Можна залишити як є, натиснути «Підставити автоматичний текст», щоб відредагувати, або написати своє.'),
+      h('div.grid.g2', field('Типові помилки та їх причина', ta('errors')), field('Обмеження', ta('limits'))),
+      field('Висновок: переваги повторного використання моделі та що покращить результат', ta('conclusion', 4)),
+      field('Посилання на GitHub', (() => { const i = h('input', { value: s.repo }); i.addEventListener('input', () => { s.repo = i.value; store(); }); return i; })()),
       h('div.row', { style: { margin: '14px 0' } },
-        btn('⤓ Слайди PowerPoint (2 шт.)', () => download(`/api/report/${k}/pptx`, s, `TL-Lab_${k}_slides.pptx`), 'primary'),
-        btn('⤓ Звіт (.md)', () => download(`/api/report/${k}/md`, s, `report_${k}.md`)),
-        btn('Попередній перегляд', async () => {
-          const t = await (await api(`/api/report/${k}/md`, { method: 'POST', body: s })).text();
+        btn('✎ Підставити автоматичний текст', () => {
+          for (const key of ['errors', 'limits', 'conclusion']) { s[key] = (r.auto && r.auto[key]) || ''; areas[key].value = s[key]; }
+          store(); toast('Текст підставлено — можна редагувати');
+        }),
+        btn('⤓ Слайди модуля (6 шт.)', () => download(`/api/report/${k}/pptx`, body(), `TL-Lab_${k}_slides.pptx`), 'primary'),
+        btn('⤓ Звіт (.md)', () => download(`/api/report/${k}/md`, body(), `report_${k}.md`)),
+        btn('Попередній перегляд звіту', async () => {
+          const t = await (await api(`/api/report/${k}/md`, { method: 'POST', body: body() })).text();
           mount(preview, panel('Попередній перегляд звіту', md(t)));
         })),
+      h('p.small.muted', 'Слайди модуля: 1 — задача і навіщо це військовим; 2 — модель і дані; 3 — як адаптували (схема); 4 — результати; ' +
+        '5 — чому так вийшло; 6 — висновок. Тези для виступу — у нотатках до слайдів.'),
       preview);
   };
   await draw();
