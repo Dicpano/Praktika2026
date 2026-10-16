@@ -1,5 +1,5 @@
 ﻿<#
-  TL-Лабораторія — установка однією командою (Windows 10/11 x64).
+  Transfer Learning-лабораторія — установка однією командою (Windows 10/11 x64).
   Запускається з INSTALL.bat. Ставить усе в цю ж папку (портативно):
     runtime\python  — вбудований Python 3.11 і бібліотеки
     app\models      — готові моделі (~2 ГБ)
@@ -134,18 +134,18 @@ try {
     Step 8 "Ярлик на робочому столі"
     if ($NoShortcut) { Warn "пропущено" } else {
         $ws = New-Object -ComObject WScript.Shell
-        $lnk = $ws.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "TL-Лабораторія.lnk"))
+        $lnk = $ws.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Transfer Learning-лабораторія.lnk"))
         $lnk.TargetPath = Join-Path $Root "TL-Lab.bat"
         $lnk.WorkingDirectory = $Root
         $lnk.IconLocation = Join-Path $App "assets\tl-lab.ico"
         $lnk.WindowStyle = 7
         $lnk.Save()
-        Ok "ярлик «TL-Лабораторія» створено"
+        Ok "ярлик «Transfer Learning-лабораторія» створено"
     }
 
     $size = "{0:N1}" -f ((Get-ChildItem $Root -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1GB)
     Write-Host "`n  ГОТОВО. Розмір папки: $size ГБ. Інтернет більше не потрібен." -ForegroundColor Green
-    Write-Host "  Запуск: ярлик «TL-Лабораторія» на робочому столі або TL-Lab.bat у цій папці." -ForegroundColor Green
+    Write-Host "  Запуск: ярлик «Transfer Learning-лабораторія» на робочому столі або TL-Lab.bat у цій папці." -ForegroundColor Green
     Write-Host "  Папку TL-Lab можна цілком скопіювати на флешку чи інший ПК — вона портативна.`n"
     $ans = Read-Host "  Запустити програму зараз? (Y/n)"
     if ($ans -notmatch '^[nNнН]') { Start-Process -FilePath (Join-Path $Root "TL-Lab.bat") -WorkingDirectory $Root }

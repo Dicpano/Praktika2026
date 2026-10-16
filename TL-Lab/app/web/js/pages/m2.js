@@ -1,5 +1,5 @@
 // Модуль 02 — класифікація службових документів (MiniLM + логістична регресія проти TF-IDF).
-import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, confusion, probBars, jobPanel, run, table, termify, select, pct } from '../ui.js';
+import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, confusion, probBars, jobPanel, run, table, termify, select, pct, check, field, slider, why, howto, steps, freezeTable } from '../ui.js';
 import { modulePage, modelCard, noResult } from './_module.js';
 
 export const render = (root, ctx) => modulePage(root, ctx, {
@@ -22,10 +22,26 @@ async function data(sec) {
 }
 
 async function adapt(sec, ctx) {
+  const ft = { on: false, layers: 2, epochs: 4, lr: 3e-5 };
+  const lrs = [1e-5, 3e-5, 1e-4];
+  const opts = h('div.grid.g3', { style: { display: 'none' } },
+    field('Скільки останніх шарів MiniLM розморозити (з 12)', slider(1, 4, 1, 2, v => { ft.layers = v; })),
+    field('Епохи', slider(2, 8, 1, 4, v => { ft.epochs = v; })),
+    field('Learning rate (для розморожених шарів)', slider(0, 2, 1, 1, v => { ft.lr = lrs[v]; }, v => lrs[v])));
   mount(sec, 
     h('div.panel.param', h('p', 'Обидва методи оцінюються 5-кратною стратифікованою крос-валідацією на тих самих текстах. ' +
       'Ваги MiniLM не змінюються — навчається лише логістична регресія поверх ембеддингів (6 × 384 + 6 = 2 310 параметрів).'),
-    btn('▶ Запустити адаптацію', () => run('/api/m2/train'), 'primary')),
+    h('div.f', check('Також розморозити останні шари MiniLM і порівняти (+3–10 хв на CPU)', false, v => { ft.on = v; opts.style.display = v ? '' : 'none'; })),
+    opts,
+    btn('▶ Запустити адаптацію', () => run('/api/m2/train', ft.on ? { unfreeze_layers: ft.layers, epochs: ft.epochs, lr: ft.lr } : {}), 'primary')),
+    steps([
+      'Усі тексти діляться на **5 частин**. П\'ять разів поспіль: на 4 частинах навчаємо, на 5-й перевіряємо (**крос-валідація**). Так кожен текст один раз потрапляє в тест, а результат не залежить від одного випадкового поділу.',
+      '**Базовий рівень — TF-IDF**: кожен текст перетворюється на «мішок слів» з вагами (рідкісні характерні слова важать більше). Класифікатор бачить лише, які слова є в тексті.',
+      '**Адаптація — MiniLM**: готова мовна модель (навчена на мільйонах речень 50+ мов) перетворює кожен текст на **ембеддинг** — 384 числа, що описують **зміст**, а не слова.',
+      'На ембеддингах навчається **логістична регресія** — простий класифікатор (2 310 чисел). Сама MiniLM не змінюється — це і є перенос знань.',
+      'Якщо ввімкнено розморожування — останні шари MiniLM теж підлаштовуються під наші документи. Голова стартує з уже навченої логістичної регресії, тож розморожена модель починає з рівня замороженої (метод **LP-FT**).',
+      'Результати всіх методів — на вкладці «Оцінювання».',
+    ]),
     jobPanel('m2', () => ctx.go('eval')));
   termify(sec);
 }
@@ -34,11 +50,14 @@ async function evaluate(sec, ctx) {
   const r = await api('/api/m2/eval');
   if (!r.entry) { mount(sec, noResult(ctx)); return; }
   const m = r.entry.metrics, lab = (m.adapted.labels || Object.keys(r.short)).map(k => r.short[k] || k);
-  mount(sec, runCaption(r.entry), kpis(m, ['accuracy', 'f1_macro']),
+  mount(sec, runCaption(r.entry), kpis(m, ['accuracy', 'f1_macro']), howto('kpi'),
+    why(r.why),
+    freezeTable(r.freeze),
     h('div.grid.g2', panel('TF-IDF + LR (базовий рівень)', confusion(m.baseline.confusion, lab)),
       panel('MiniLM + LR (адаптація)', confusion(m.adapted.confusion, lab))),
+    m.finetuned ? panel('MiniLM з розмороженими шарами', confusion(m.finetuned.confusion, lab)) : null, howto('confusion'),
     h('h2', `Хибні відповіді MiniLM (${r.errors.length})`),
-    r.errors.length ? table([['true', 'Істина'], ['pred', 'Прогноз'], ['text', 'Текст']], r.errors) : alert('Помилок немає.', 'ok'));
+    r.errors.length ? table([['true', 'Істина'], ['pred', 'Прогноз'], [e => h('span.small', e.why || '—'), 'Чому могло статися'], ['text', 'Текст']], r.errors) : alert('Помилок немає.', 'ok'));
 }
 
 async function demo(sec) {
