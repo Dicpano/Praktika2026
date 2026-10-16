@@ -241,7 +241,10 @@ def test_slides_build():
     data = slides.build("m2", entry, None, "помилка", "обмеження", "висновок", "https://github.com/x/y")
     from pptx import Presentation
     import io
-    assert len(Presentation(io.BytesIO(data)).slides) == 2
+    prs = Presentation(io.BytesIO(data))
+    assert len(prs.slides) == 6
+    assert all(sl.has_notes_slide and sl.notes_slide.notes_text_frame.text for sl in prs.slides)  # тези для виступу
+    assert len(Presentation(io.BytesIO(slides.build_all("https://github.com/x/y", "Доповідач"))).slides) == 10
     for k, e in [("m6", {"time": "t", "seed": 42, "params": {}, "metrics": {
             kk: {"mean_reward": 100.0, "std_reward": 5.0} for kk in
             ["baseline", "adapted", "original_env_before", "original_env_after"]}})]:
