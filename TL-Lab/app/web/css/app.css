@@ -131,7 +131,7 @@ table.t td[contenteditable]{outline:none}table.t td[contenteditable]:focus{backg
 .kpi .n{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .kpi .v{font-size:1.65rem;color:var(--white);margin-top:6px}.kpi .v .a{color:var(--good);text-shadow:0 0 10px rgba(57,255,154,.4)}
 .kpi .v .ar{color:var(--muted);font-size:1.1rem;margin:0 6px}.kpi .d{font-size:.78rem;margin-top:4px}
-body.present .kpi .v{font-size:2.6rem}body.present .param{display:none !important}
+body.present .kpi .v{font-size:2.6rem}body.present .param:not(.panel){display:none !important}body.present .panel.param>.grid,body.present .panel.param>p{display:none !important}
 body.present #main{padding-top:18px}
 
 /* ---------- консоль подій ---------- */
