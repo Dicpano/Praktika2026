@@ -1,4 +1,4 @@
-"""python -m server [--port 8501] — запуск сервера TL-Лабораторії."""
+"""python -m server [--port 8501] — запуск сервера Transfer Learning-лабораторії."""
 import argparse
 
 import uvicorn

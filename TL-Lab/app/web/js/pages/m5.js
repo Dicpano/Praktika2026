@@ -1,5 +1,5 @@
 // Модуль 05 — генерація тестових запитань (Qwen3-0.6B: zero-shot, few-shot, RAG, LoRA) і експорт тесту.
-import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, jobPanel, run, table, field, slider, check, tabs, termify, select, download, toast } from '../ui.js';
+import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, jobPanel, run, table, field, slider, check, tabs, termify, select, download, toast, why, howto, steps } from '../ui.js';
 import { modulePage, modelCard, noResult } from './_module.js';
 
 export const render = (root, ctx) => modulePage(root, ctx, {
@@ -36,6 +36,14 @@ async function adapt(sec, ctx) {
         field('Learning rate', slider(0, 3, 1, 2, v => { lp.lr = lrs[v]; }, v => lrs[v])),
         field('Ранг r', slider(4, 16, 4, 8, v => { lp.r = v; }))),
       btn('Навчити LoRA', () => run('/api/m5/lora', lp)))),
+    steps([
+      'Береться 9 тестових навчальних текстів, яких модель не бачила. Для кожного **Qwen3** (мовна модель на 0,6 млрд параметрів) має скласти тестове запитання у форматі JSON.',
+      '**Zero-shot** — модель отримує лише інструкцію («склади запитання з 3 варіантами…»), без прикладів.',
+      '**Few-shot** — до інструкції додаються 2–3 готові приклади «текст → запитання» з навчальної вибірки. Модель наслідує їхній формат.',
+      '**RAG** — приклади не випадкові, а **найближчі за змістом** до тексту (їх знаходить MiniLM). Ваги моделі не змінюються.',
+      '**LoRA** (якщо навчено) — до моделі додано маленькі навчувані матриці (≈0,1–1 % параметрів), донавчені на наших прикладах. Формат «вшитий» у модель.',
+      'Для кожної відповіді перевіряється: чи це правильний JSON і чи ключ є серед варіантів → вкладка «Оцінювання».',
+    ]),
     jobPanel('m5', j => { if (j.title.startsWith('Оцінка')) ctx.go('eval'); }));
   termify(sec);
 }
@@ -51,9 +59,10 @@ async function evaluate(sec, ctx) {
   const by = r.entry.metrics.by_mode;
   const cols = [['text', 'Текст']];
   for (const md of Object.keys(by)) cols.push([row => q(row.outputs[md]?.parsed), r.modes[md]]);
-  mount(sec, runCaption(r.entry), kpis(r.entry.metrics, ['valid_json', 'key_in_options']),
+  mount(sec, runCaption(r.entry), kpis(r.entry.metrics, ['valid_json', 'key_in_options']), howto('kpi'),
+    why(r.why),
     table([[x => r.modes[x], 'Режим'], [x => Math.round(by[x].valid_json * 100) + ' %', 'Валідний JSON'],
-      [x => Math.round(by[x].key_in_options * 100) + ' %', 'Ключ серед варіантів']], Object.keys(by), { scroll: false }),
+      [x => Math.round(by[x].key_in_options * 100) + ' %', 'Ключ серед варіантів']], Object.keys(by), { scroll: false }), howto('m5table'),
     h('h2', 'Згенеровані запитання (експертна оцінка 1–5: відповідність тексту, правильність ключа, якість хибних варіантів)'),
     table(cols, r.rows, { height: '620px' }));
 }

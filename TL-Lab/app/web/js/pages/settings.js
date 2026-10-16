@@ -1,13 +1,15 @@
 // Налаштування: інтерфейс і фон, модулі, продуктивність, дані й кеш, стан системи.
 import { h, api, mount, alert, btn, header, tabs, panel, field, slider, select, check, table, toast, S, loading } from '../ui.js';
-import { saveSetting } from '../app.js';
+import { saveSetting, powerOff } from '../app.js';
 
 const SECS = [['ui', 'Інтерфейс'], ['mods', 'Модулі'], ['perf', 'Продуктивність'], ['data', 'Дані й кеш'], ['sys', 'Система']];
 
 export async function render(root, ctx) {
   const cur = SECS.find(s => s[0] === ctx.sub) ? ctx.sub : 'ui';
   const sec = h('div.sec');
-  root.append(header('SETUP', 'Налаштування', '~/settings'), tabs(SECS, cur, ctx.go), sec);
+  const off = btn('⏻ Вимкнути програму', () => powerOff(off), 'off-btn');
+  off.style.cssText = 'display:inline-block;width:auto;margin:0 0 12px';
+  root.append(header('SETUP', 'Налаштування', '~/settings'), off, tabs(SECS, cur, ctx.go), sec);
   const s = S.settings;
   const set = (k, v) => saveSetting(k, v).then(() => toast('Збережено'));
   if (cur === 'ui') {

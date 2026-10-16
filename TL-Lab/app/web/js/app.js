@@ -103,6 +103,23 @@ export async function saveSetting(k, v) {
 }
 $('#present').addEventListener('change', e => saveSetting('present_mode', e.target.checked).then(route));
 
+/** Вимкнення: перше натискання — підтвердження (без системних діалогів), друге — зупинка сервера. */
+export function powerOff(btnEl) {
+  if (!btnEl.dataset.armed) {
+    btnEl.dataset.armed = '1';
+    const old = btnEl.textContent;
+    btnEl.textContent = 'Натисніть ще раз — вимкнути';
+    btnEl.classList.add('armed');
+    setTimeout(() => { delete btnEl.dataset.armed; btnEl.textContent = old; btnEl.classList.remove('armed'); }, 4000);
+    return;
+  }
+  fetch('/api/shutdown', { method: 'POST' }).catch(() => {}).finally(() => {
+    document.body.innerHTML = '<div class="bye"><h1>Програму вимкнено</h1><p>Сервер зупинено. Це вікно можна закрити.</p>' +
+      '<p class="muted">Наступний запуск — ярлик «Transfer Learning-лабораторія» на робочому столі або TL-Lab.bat.</p></div>';
+  });
+}
+$('#poweroff').addEventListener('click', e => powerOff(e.currentTarget));
+
 (async () => {
   try { await loadSettings(); } catch (e) { toast('Сервер недоступний: ' + e.message, 'er'); }
   try { for (const j of await api('/api/jobs')) if (!S.jobs[j.module]) S.jobs[j.module] = j; } catch (e) { /* */ }

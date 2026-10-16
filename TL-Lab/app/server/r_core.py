@@ -53,13 +53,26 @@ def job_cancel(job_id: str):
     return {"ok": False}
 
 
+CLIENTS = {"n": 0, "seen": time.time()}   # відкриті вікна програми (для автовимкнення прихованого сервера)
+
+
 @r.get("/api/events")
 async def events(request: Request):
     """Потік подій (Server-Sent Events): стан активних і щойно завершених задач.
     Браузер отримує оновлення сам — без опитування сторінки."""
     async def gen():
+        CLIENTS["n"] += 1
+        try:
+            async for x in _gen():
+                yield x
+        finally:
+            CLIENTS["n"] -= 1
+            CLIENTS["seen"] = time.time()
+
+    async def _gen():
         last, idle = None, 0
         while not await request.is_disconnected():
+            CLIENTS["seen"] = time.time()
             recent = [j for j in MANAGER.all() if j.active or (j.finished and time.time() - j.finished < 5)]
             snap = json.dumps([job_dict(j, 40) for j in recent], ensure_ascii=False)
             if snap != last or idle > 15:
