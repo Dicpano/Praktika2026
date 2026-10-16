@@ -187,15 +187,23 @@ def history_csv():
 # ---------------- звіт і слайди ----------------
 @r.get("/api/report/{key}")
 def report_info(key: str):
+    from core import insights
     from core.report import compare_rows
     e = experiment.latest(key)
-    return clean({"card": card(key), "entry": e, "rows": compare_rows(e["metrics"]) if e else []})
+    why = insights.why_for(key, e) if e else []
+    return clean({"card": card(key), "entry": e, "rows": compare_rows(e["metrics"]) if e else [], "why": why,
+                  "auto": insights.auto_text(key, e, why), "summary": insights.summary_rows()})
 
 
 @r.post("/api/report/{key}/{fmt}")
 def report_build(key: str, fmt: str, body: dict):
     from core import slides
     from core.report import build_markdown
+    repo, speaker = body.get("repo") or "https://github.com/Dicpano/Praktika2026", body.get("speaker", "")
+    if key == "all":
+        return Response(slides.build_all(repo, speaker),
+                        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        headers={"Content-Disposition": 'attachment; filename="TL-Lab_dopovid.pptx"'})
     e = experiment.latest(key)
     errors, limits, concl = body.get("errors", ""), body.get("limits", ""), body.get("conclusion", "")
     if fmt == "md":
@@ -204,8 +212,7 @@ def report_build(key: str, fmt: str, body: dict):
             (config.RESULTS / f"report_{key}.md").write_text(md, encoding="utf-8")
         return Response(md.encode("utf-8"), media_type="text/markdown",
                         headers={"Content-Disposition": f'attachment; filename="report_{key}.md"'})
-    data = slides.build(key, e, experiment.load_extra(key), errors, limits, concl,
-                        body.get("repo", "https://github.com/Dicpano/Praktika2026"))
+    data = slides.build(key, e, experiment.load_extra(key), errors, limits, concl, repo, speaker)
     return Response(data, media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     headers={"Content-Disposition": f'attachment; filename="TL-Lab_{key}_slides.pptx"'})
 

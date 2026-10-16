@@ -27,12 +27,26 @@ def compare_rows(metrics: dict) -> list[tuple[str, str, str]]:
 
 
 def build_markdown(key: str, entry: dict | None, errors: str, limits: str, conclusion: str) -> str:
+    from core import experiment, insights
     c = CARDS[key]
+    why = insights.why_for(key, entry) if entry else []
+    auto = insights.auto_text(key, entry, why)
+    errors, limits, conclusion = errors or auto["errors"], limits or auto["limits"], conclusion or auto["conclusion"]
+    ds = insights.data_summary(key)
+    _ = experiment
     lines = [
         f"# {c.title}", "",
+        "## Навіщо це військовим", "", insights.theory_text(key, "Навіщо це військовим"), "",
+        "## Модель і дані", "",
         f"**Модель:** {c.model}  ", f"**Джерело:** {c.source}  ", f"**Ліцензія:** {c.license}  ",
-        f"**Що адаптовано:** {c.adapted}  ", f"**Базовий рівень:** {c.baseline}", "",
+        f"**Навчена на:** {c.pretrained_on}  ", f"**Що адаптовано:** {c.adapted}  ", f"**Базовий рівень:** {c.baseline}", "",
     ]
+    if ds["rows"]:
+        lines += [f"| Клас | {ds['unit'].capitalize() or 'Кількість'} |", "| --- | --- |"]
+        lines += [f"| {a} | {n} |" for a, n in ds["rows"]] + [""]
+    if ds["note"]:
+        lines += [ds["note"], ""]
+    lines += ["## Як адаптували", ""] + [f"{i}. {t}" for i, t in enumerate(insights.ADAPT[key]["steps"], 1)] + [""]
     if entry:
         lines += [f"## Результати (запуск {entry['time']}, seed {entry['seed']})", "",
                   "| Метрика | Базовий рівень | Адаптована модель |", "| --- | --- | --- |"]
@@ -42,6 +56,8 @@ def build_markdown(key: str, entry: dict | None, errors: str, limits: str, concl
         figs = sorted(config.FIGS.glob(f"{key}_*.png"))
         if figs:
             lines += ["", "## Графіки", ""] + [f"![{f.stem}](figs/{f.name})" for f in figs]
+        if why:
+            lines += ["", "## Чому так вийшло", ""] + [f"- {w['md']}" for w in why]
     else:
         lines += ["_Запусків ще не було — виконайте адаптацію у вкладці модуля._"]
     lines += ["", "## Типові помилки", "", errors or "—", "",
