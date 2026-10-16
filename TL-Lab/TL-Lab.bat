@@ -17,6 +17,9 @@ if not exist "%PY%" (
   pause & exit /b 1
 )
 
+rem ярлик з новою назвою на робочому столі (старий «TL-Лабораторія» прибирається)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%installer\shortcut.ps1" -Root "%HERE:~0,-1%" >nul 2>&1
+
 rem Якщо програма вже працює — просто відкриваємо вікно
 powershell -NoProfile -Command "try { if((Invoke-WebRequest -UseBasicParsing http://127.0.0.1:%PORT%/health -TimeoutSec 2).Content -match 'tl-lab-3'){ exit 0 } } catch {}; exit 1"
 if not errorlevel 1 goto open
