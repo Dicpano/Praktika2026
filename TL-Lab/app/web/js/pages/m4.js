@@ -1,5 +1,5 @@
 // Модуль 04 — кластеризація повідомлень (MiniLM + KMeans; базовий рівень — KMeans на TF-IDF).
-import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, plot, jobPanel, run, table, field, slider, tabs, termify, COLORS, select } from '../ui.js';
+import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, plot, jobPanel, run, table, field, slider, tabs, termify, COLORS, select, why, howto, steps } from '../ui.js';
 import { modulePage, modelCard, noResult } from './_module.js';
 
 export const render = (root, ctx) => modulePage(root, ctx, {
@@ -38,6 +38,13 @@ async function adapt(sec, ctx) {
     field('Кількість кластерів k', slider(2, 9, 1, p.k, v => { p.k = v; })), h('span.grow'),
     btn('⬡ Згрупувати', () => run('/api/m4/run', p), 'primary')),
   h('p.small.muted', 'Підказка: оберіть k за графіками silhouette і методом «ліктя» в розділі «Оцінювання».')),
+  steps([
+    'Кожне повідомлення перетворюється на **ембеддинг MiniLM** — 384 числа, що описують зміст. Схожі за змістом повідомлення отримують близькі числа.',
+    '**KMeans** ставить k «центрів» і ділить повідомлення на k груп так, щоб кожне було якнайближче до свого центру. Міток тем модель **не бачить** — це навчання без учителя.',
+    'Для кожної групи автоматично підбираються **ключові слова** (слова, характерні саме для неї) — з них складається назва кластера.',
+    '**Базовий рівень**: те саме, але на TF-IDF (лише збіг слів), без MiniLM.',
+    'Для перевірки знайдені групи порівнюються з прихованими еталонними темами (ARI, NMI). Для вибору k рахуються silhouette і метод «ліктя» → вкладка «Оцінювання».',
+  ]),
   jobPanel('m4', () => draw()), res);
   termify(sec);
   const draw = async () => {
@@ -48,7 +55,7 @@ async function adapt(sec, ctx) {
     mount(res, h('div.row', tabs([['PCA', 'PCA'], ['t-SNE', 't-SNE']], VIEW.method, m => { VIEW.method = m; draw(); }, 'small'),
       VIEW.method === 't-SNE' ? field('perplexity', slider(3, 15, 1, VIEW.perp, v => { VIEW.perp = v; })) : null,
       VIEW.method === 't-SNE' ? btn('Перебудувати', draw, 'sm') : null),
-    panel(`Повідомлення на площині (${VIEW.method}), колір — кластер KMeans (k = ${r.k})`, scatter(r.points, names)),
+    panel(`Повідомлення на площині (${VIEW.method}), колір — кластер KMeans (k = ${r.k})`, scatter(r.points, names), howto('scatter')),
     h('h2', 'Кластери (назви — автоматично з ключових слів)'),
     ...r.clusters.map((c, i) => h('details.x', { open: i === 0 || null },
       h('summary', h('span', { style: { color: COLORS[c.id % COLORS.length] } }, '■ '), `Кластер ${c.id + 1}: ${c.name} — ${c.items.length} текстів`),
@@ -65,14 +72,15 @@ async function evaluate(sec, ctx) {
   const best = Object.entries(sil).sort((a, b) => b[1] - a[1])[0];
   const cap = h('p.small.muted', 'Silhouette — наскільки кластери щільні й відокремлені (−1…1). ARI і NMI — збіг із прихованими темами (1 = повний збіг, 0 = випадковий). Метод «ліктя»: де крива перестає різко падати — там розумне k.');
   termify(cap);
-  mount(sec, runCaption(r.entry), kpis(r.entry.metrics, ['silhouette', 'ari', 'nmi']), cap,
+  mount(sec, runCaption(r.entry), kpis(r.entry.metrics, ['silhouette', 'ari', 'nmi']), cap, howto('kpi'),
+    why(r.why),
     h('div.grid.g2',
       panel(`Вибір k за silhouette (найкраще k = ${best[0]})`, plot([{ x: Object.keys(sil), y: Object.values(sil), mode: 'lines+markers', line: { color: '#00e5ff' } }],
-        { xaxis: { title: 'k' }, yaxis: { title: 'silhouette' } }, 280)),
+        { xaxis: { title: 'k' }, yaxis: { title: 'silhouette' } }, 280), howto('silhouette')),
       panel('Метод «ліктя» (inertia)', plot([{ x: Object.keys(el), y: Object.values(el), mode: 'lines+markers', line: { color: '#ffb000' } }],
-        { xaxis: { title: 'k' }, yaxis: { title: 'сума квадратів відстаней' } }, 280))),
+        { xaxis: { title: 'k' }, yaxis: { title: 'сума квадратів відстаней' } }, 280), howto('elbow'))),
     r.cross ? panel('Перехресна таблиця «кластер × прихована тема»', plot([{ type: 'heatmap', z: r.cross.values, x: r.cross.columns, y: r.cross.index,
-      colorscale: [[0, '#05070a'], [1, '#00e5ff']], showscale: false, text: r.cross.values, texttemplate: '%{text}' }], { margin: { l: 60, r: 10, t: 10, b: 60 }, yaxis: { autorange: 'reversed' } }, 320)) : null);
+      colorscale: [[0, '#05070a'], [1, '#00e5ff']], showscale: false, text: r.cross.values, texttemplate: '%{text}' }], { margin: { l: 60, r: 10, t: 10, b: 60 }, yaxis: { autorange: 'reversed' } }, 320), howto('cross')) : null);
 }
 
 async function demo(sec) {

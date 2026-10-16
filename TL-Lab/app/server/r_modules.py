@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import Response
 
 from core import config, data, experiment, settings
+from modules import explain
 from server.common import card, clean, job_result, latest, need, png_b64, start, url
 
 r = APIRouter()
@@ -79,7 +80,8 @@ def m1_eval():
             if Path(err["file"]).exists():
                 errors.append({**err, "true_ua": m.LABELS_UA.get(err["true"], err["true"]), "pred_ua": m.LABELS_UA.get(err["pred"], err["pred"]),
                                "url": url(err["file"])})
-    return clean({"entry": e, "loss": (res or {}).get("loss"), "errors": errors,
+    why = (explain.m1(e["metrics"], m.LABELS_UA, e.get("params")) + explain.m1_loss((res or {}).get("loss"))) if e else []
+    return clean({"entry": e, "loss": (res or {}).get("loss"), "errors": errors, "why": why,
                   "labels": {c: m.LABELS_UA.get(c, c) for c in (res or {}).get("classes", m.CLASSES)}})
 
 
@@ -123,18 +125,26 @@ def m2_data():
 
 
 @r.post("/api/m2/train")
-def m2_train():
+def m2_train(body: dict | None = None):
     from modules import m2_docs as m
-    return start("m2", "MiniLM + LogisticRegression", lambda job: m.run_experiment(job=job))
+    b = body or {}
+    kw = {"unfreeze_layers": int(b.get("unfreeze_layers") or 0), "epochs": int(b.get("epochs") or 4),
+          "lr": float(b.get("lr") or 3e-5)}
+    title = "MiniLM + LogisticRegression" + (" + розморожування" if kw["unfreeze_layers"] else "")
+    return start("m2", title, lambda job, **k: m.run_experiment(job=job, **k), **kw)
 
 
 @r.get("/api/m2/eval")
 def m2_eval():
     from modules import m2_docs as m
     res = experiment.load_extra("m2") or {}
-    return clean({"entry": latest("m2"), "short": m.LABELS_SHORT, "labels": m.LABELS_UA,
+    e = latest("m2")
+    why = explain.m2(e["metrics"], m.LABELS_UA, res.get("freeze")) if e else []
+    return clean({"entry": e, "short": m.LABELS_SHORT, "labels": m.LABELS_UA, "freeze": res.get("freeze"), "why": why,
                   "errors": [{"text": e["text"], "true": m.LABELS_UA.get(e["true"], e["true"]),
-                              "pred": m.LABELS_UA.get(e["pred"], e["pred"])} for e in res.get("errors", [])]})
+                              "pred": m.LABELS_UA.get(e["pred"], e["pred"]),
+                              "why": explain._hint(explain.M2_HINTS, e["true"], e["pred"]) or
+                              "у тексті мало характерних ознак свого типу або є слова, типові для іншого"} for e in res.get("errors", [])]})
 
 
 @r.get("/api/m2/demo")
@@ -174,8 +184,11 @@ def m3_data():
 def m3_train(body: dict):
     from modules import m3_audio as m
     mapping = body.get("mapping") or m.ZERO_SHOT_MAP
-    return start("m3", "YAMNet + LogisticRegression", lambda job, mapping: m.run_experiment(mapping=mapping, job=job),
-                 mapping=mapping)
+    kw = {"unfreeze_layers": int(body.get("unfreeze_layers") or 0), "epochs": int(body.get("epochs") or 4),
+          "lr": float(body.get("lr") or 1e-4)}
+    title = "YAMNet + LogisticRegression" + (" + розморожування" if kw["unfreeze_layers"] else "")
+    return start("m3", title, lambda job, mapping, **k: m.run_experiment(mapping=mapping, job=job, **k),
+                 mapping=mapping, **kw)
 
 
 @r.get("/api/m3/eval")
@@ -183,10 +196,16 @@ def m3_eval():
     from modules import m3_audio as m
     res = experiment.load_extra("m3") or {}
     errs = [{"url": url(e["file"]), "name": Path(e["file"]).name, "true": m.LABELS_UA.get(e["true"], e["true"]),
-             "pred": m.LABELS_UA.get(e["pred"], e["pred"]), "zero_shot": m.LABELS_UA.get(e["zero_shot"], e["zero_shot"])}
+             "pred": m.LABELS_UA.get(e["pred"], e["pred"]), "zero_shot": m.LABELS_UA.get(e["zero_shot"], e["zero_shot"]),
+             "why": (explain._hint(explain.M3_HINTS, e["true"], e["pred"]) or
+                     "схожий тембр або сторонній шум у записі — послухайте, що в ньому чути найголосніше")
+             if e["true"] != e["pred"] else
+             "zero-shot помилився, адаптована модель — ні"}
             for e in res.get("errors", []) if Path(e["file"]).exists()]
-    return clean({"entry": latest("m3"), "labels": m.LABELS_UA, "errors": errs,
-                  "low": res.get("params", {}).get("low_data", [])})
+    e = latest("m3")
+    low = res.get("params", {}).get("low_data", [])
+    why = explain.m3(e["metrics"], m.LABELS_UA, low, res.get("freeze")) if e else []
+    return clean({"entry": e, "labels": m.LABELS_UA, "errors": errs, "low": low, "freeze": res.get("freeze"), "why": why})
 
 
 @r.get("/api/m3/demo")
@@ -264,7 +283,7 @@ def m4_result(method: str = "PCA", perp: int = 7):
         cross = {"index": ct.index.tolist(), "columns": ct.columns.tolist(), "values": ct.values.tolist()}
     return clean({"entry": latest("m4"), "k": k, "points": [{"x": float(a), "y": float(b), "c": int(lb), "t": m.short(t)}
                   for (a, b), lb, t in zip(xy, res["labels"], res["texts"])], "clusters": clusters,
-                  "silhouette": res["silhouette_k"], "elbow": res.get("elbow_k"), "cross": cross})
+                  "silhouette": res["silhouette_k"], "elbow": res.get("elbow_k"), "cross": cross, "why": explain.m4(res)})
 
 
 @r.get("/api/m4/demo")
@@ -323,7 +342,9 @@ def m5_eval():
     for i, t in enumerate(res.get("test", [])):
         rows.append({"text": t["text"], "type": t.get("type", "mc"),
                      "outputs": {md: {"raw": outs[i], "parsed": m.parse(outs[i])} for md, outs in res.get("outputs", {}).items()}})
-    return clean({"entry": latest("m5"), "modes": m.MODES, "rows": rows})
+    e = latest("m5")
+    why = explain.m5((e["metrics"] or {}).get("by_mode") or {}, m.MODES) if e else []
+    return clean({"entry": e, "modes": m.MODES, "rows": rows, "why": why})
 
 
 @r.get("/api/m5/demo")
@@ -368,7 +389,7 @@ def m5_export(fmt: str, body: dict):
     from modules import m5_llm as m
     items = body.get("items", [])
     need(bool(items), "немає запитань")
-    title = body.get("title") or "Тест TL-Лабораторії"
+    title = body.get("title") or "Тест Transfer Learning-лабораторії"
     if fmt == "gift":
         return Response(m.to_gift(items, title).encode("utf-8"), media_type="text/plain",
                         headers={"Content-Disposition": 'attachment; filename="test_moodle.gift.txt"'})
@@ -417,14 +438,19 @@ def m6_train(body: dict):
     from modules import m6_rl as m
     return start("m6", "Донавчання PPO", lambda job, **kw: m.run_experiment(job=job, **kw),
                  env=body.get("env", "cartpole"), param=body["param"], value=float(body["value"]),
-                 timesteps=int(body.get("timesteps", 50_000)))
+                 timesteps=int(body.get("timesteps", 50_000)), compare_frozen=bool(body.get("compare_frozen")))
 
 
 @r.get("/api/m6/eval")
 def m6_eval():
     res = experiment.load_extra("m6") or {}
     curve = res.get("curve") or []
-    return clean({"entry": latest("m6"), "curve": curve[-3000:], "params": res.get("params")})
+    from modules import m6_rl as m
+    e, p = latest("m6"), res.get("params") or {}
+    env = p.get("env", "cartpole")
+    why = explain.m6(e["metrics"], p, curve, m.ENVS[env]["range"], m.ENVS[env]["labels"],
+                     (e["metrics"] or {}).get("frozen")) if e else []
+    return clean({"entry": e, "curve": curve[-3000:], "params": p, "why": why, "freeze": res.get("freeze")})
 
 
 @r.get("/api/m6/scan")

@@ -250,17 +250,32 @@ class RewardLog(BaseCallback):
         return True
 
 
-def finetune(model: PPO, params: dict, timesteps=50_000, lr=3e-4, job=None, env: str = "cartpole") -> tuple[PPO, list]:
+def freeze_body(model: PPO) -> tuple[int, int]:
+    """Заморозити «тіло» мережі (спільні шари mlp_extractor): навчаються лише останні шари action_net і value_net."""
+    pol = model.policy
+    for prm in list(pol.features_extractor.parameters()) + list(pol.mlp_extractor.parameters()):
+        prm.requires_grad = False
+    return trainable_params(model)
+
+
+def trainable_params(model: PPO) -> tuple[int, int]:
+    ps = list(model.policy.parameters())
+    return sum(p.numel() for p in ps if p.requires_grad), sum(p.numel() for p in ps)
+
+
+def finetune(model: PPO, params: dict, timesteps=50_000, lr=3e-4, job=None, env: str = "cartpole",
+             save: bool = True, lo: float = 0.1, hi: float = 0.9) -> tuple[PPO, list]:
     experiment.set_seed()
     model.set_env(DummyVecEnv([lambda: Monitor(make_env(params, env=env))]))
     model.learning_rate = lr
     model.lr_schedule = _Sched(lr)
     model.clip_range = _Sched(0.2)
     model.set_random_seed(config.SEED)
-    log = RewardLog(job=job, total=timesteps, lo=0.1, hi=0.9)
+    log = RewardLog(job=job, total=timesteps, lo=lo, hi=hi)
     with single_thread():
         model.learn(total_timesteps=timesteps, callback=log, reset_num_timesteps=False)
-    model.save(finetuned_file(env))
+    if save:
+        model.save(finetuned_file(env))
     return model, log.curve
 
 
@@ -314,7 +329,13 @@ def record_side_by_side(before: PPO, after: PPO, params: dict, path: Path, seed=
     return path
 
 
-def run_experiment(param="length", value=1.5, timesteps=50_000, job=None, env: str = "cartpole") -> dict:
+def run_experiment(param="length", value=1.5, timesteps=50_000, job=None, env: str = "cartpole",
+                   compare_frozen: bool = False) -> dict:
+    """Донавчання готового агента в зміненому середовищі.
+
+    compare_frozen — додатково той самий старт, але з замороженим тілом мережі (навчається лише останній шар).
+    """
+    import time
     j = reporter(job)
     model, source = load_pretrained(env=env)
     changed = {param: value}
@@ -330,16 +351,38 @@ def run_experiment(param="length", value=1.5, timesteps=50_000, job=None, env: s
         j.warn("зміна майже не шкодить агенту (падіння < 30 %) — донавчанню нема чого виправляти. "
                f"Для показового результату спробуйте «{labels[next(iter(ENVS[env]['suggest']))]}» = "
                f"{next(iter(ENVS[env]['suggest'].values()))}")
-    model, curve = finetune(model, changed, timesteps, job=job, env=env)
-    j.set(0.92, "оцінка «після»")
+    full_tr, total = trainable_params(model)
+    t0 = time.time()
+    model, curve = finetune(model, changed, timesteps, job=job, env=env, hi=0.55 if compare_frozen else 0.9)
+    full_s = time.time() - t0
+    j.set(0.92 if not compare_frozen else 0.57, "оцінка «після»")
     after = summary(evaluate(model, changed, env=env))
     orig_after = summary(evaluate(model, None, env=env))
+    frozen = freeze = None
+    if compare_frozen:
+        j.log(f"повне донавчання: {after['mean_reward']:.1f}. Тепер — з замороженим тілом мережі (лише останній шар)")
+        fm, _ = load_pretrained(env=env)
+        fr_tr, _ = freeze_body(fm)
+        j.log(f"навчуваних параметрів: {fr_tr} з {total} (повне донавчання — {full_tr})")
+        t0 = time.time()
+        fm, _ = finetune(fm, changed, timesteps, job=job, env=env, save=False, lo=0.6, hi=0.92)
+        fr_s = time.time() - t0
+        frozen = summary(evaluate(fm, changed, env=env))
+        frozen["orig_env"] = summary(evaluate(fm, None, env=env))["mean_reward"]
+        j.log(f"заморожене тіло: {frozen['mean_reward']:.1f} · повне: {after['mean_reward']:.1f}")
+        freeze = {"metric": "mean_reward", "rows": [
+            {"variant": "Лише останній шар (тіло заморожене)", "trainable": fr_tr, "total": total,
+             "score": frozen["mean_reward"], "orig": frozen["orig_env"], "seconds": round(fr_s, 1)},
+            {"variant": "Уся мережа (повне донавчання)", "trainable": full_tr, "total": total,
+             "score": after["mean_reward"], "orig": orig_after["mean_reward"], "seconds": round(full_s, 1)}]}
     params = {"env": env, "agent": source, "param": param, "value": value, "timesteps": timesteps,
-              "episodes": len(EVAL_SEEDS)}
+              "episodes": len(EVAL_SEEDS), "compare_frozen": compare_frozen}
     metrics = {"baseline": before, "adapted": after, "original_env_before": orig_before, "original_env_after": orig_after}
+    if frozen:
+        metrics["frozen"] = frozen
     experiment.log_result("m6", params, metrics,
                           notes="baseline = готовий агент у зміненому середовищі; original_env_* — контроль забування")
-    res = {"metrics": metrics, "curve": curve, "params": params}
+    res = {"metrics": metrics, "curve": curve, "params": params, "freeze": freeze}
     experiment.save_extra("m6", res)
     j.ok(f"змінене середовище: {before['mean_reward']:.1f} → {after['mean_reward']:.1f}")
     ok = norm(orig_after["mean_reward"], env) >= 0.9 * norm(orig_before["mean_reward"], env)

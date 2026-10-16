@@ -1,5 +1,5 @@
 // Модуль 03 — розпізнавання звуків (YAMNet + логістична регресія; zero-shot як базовий рівень).
-import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, confusion, probBars, plot, jobPanel, run, table, filePick, termify } from '../ui.js';
+import { h, api, mount, panel, alert, btn, loading, kpis, runCaption, confusion, probBars, plot, jobPanel, run, table, filePick, termify, check, field, slider, why, howto, steps, freezeTable } from '../ui.js';
 import { modulePage, modelCard, noResult } from './_module.js';
 
 export const render = (root, ctx) => modulePage(root, ctx, {
@@ -30,11 +30,30 @@ async function data(sec) {
 
 async function adapt(sec, ctx) {
   if (!MAP) MAP = (await api('/api/m3/data')).mapping;
+  const ft = { on: false, layers: 2, epochs: 4, lr: 1e-4 };
+  const lrs = [3e-5, 1e-4, 3e-4];
+  const opts = h('div.grid.g3', { style: { display: 'none' } },
+    field('Скільки верхніх блоків YAMNet розморозити', slider(1, 4, 1, 2, v => { ft.layers = v; })),
+    field('Епохи', slider(2, 8, 1, 4, v => { ft.epochs = v; })),
+    field('Learning rate (для розморожених блоків)', slider(0, 2, 1, 1, v => { ft.lr = lrs[v]; }, v => lrs[v])));
   mount(sec, h('div.panel.param',
     h('p', 'Поділ train/test 70/30 — за файлами. YAMNet заморожена; навчається лише логістична регресія на 2048 ознаках ' +
       '(середнє + максимум ембеддингів по фреймах). Класи з малою кількістю записів позначаються в журналі. ' +
       'YAMNet працює в окремому процесі: перший запуск — до 20 с на старт TensorFlow.'),
-    btn('▶ Запустити адаптацію', () => run('/api/m3/train', { mapping: MAP }), 'primary')),
+    h('div.f', check('ЕКСПЕРИМЕНТ: також розморозити верхні блоки YAMNet і порівняти (+5–15 хв)', false, v => { ft.on = v; opts.style.display = v ? '' : 'none'; })),
+    opts,
+    h('p.small.c-wr', 'Записів мало, тому розморожена модель може «завчити» навчальні записи і стати гіршою — це теж результат для доповіді. ' +
+      'Якщо ця версія YAMNet не дозволяє змінювати ваги, програма повідомить і збереже звичайну адаптацію.'),
+    btn('▶ Запустити адаптацію', () => run('/api/m3/train', { mapping: MAP, ...(ft.on ? { unfreeze_layers: ft.layers, epochs: ft.epochs, lr: ft.lr } : {}) }), 'primary')),
+  steps([
+    'Записи кожного класу діляться на **навчальні (70 %)** і **тестові (30 %)** — за файлами, щоб шматки одного запису не потрапили в обидві частини.',
+    'Кожен запис перетворюється на 16 кГц моно і подається в **YAMNet** — мережу, що «чула» 2 млн роликів YouTube (AudioSet, 521 тип звуків).',
+    'YAMNet ріже запис на шматки по 0,96 с і для кожного видає **ембеддинг** — 1024 числа, що описують звук. Середнє і максимум по шматках → 2048 ознак на файл.',
+    '**Базовий рівень (zero-shot)**: без навчання — YAMNet сама каже, що чує (наприклад «Engine», «Helicopter»), а ми переводимо це в наші класи за таблицею відповідностей.',
+    '**Адаптація**: на 2048 ознаках навчальних записів навчається **логістична регресія** — простий класифікатор. Сама YAMNet не змінюється.',
+    'Якщо ввімкнено експеримент — ще й верхні блоки YAMNet підлаштовуються під наші звуки; результати порівнюються в одній таблиці.',
+    'Усе перевіряється на тестових записах → вкладка «Оцінювання».',
+  ]),
   jobPanel('m3', () => ctx.go('eval')));
   termify(sec);
 }
@@ -43,12 +62,16 @@ async function evaluate(sec, ctx) {
   const r = await api('/api/m3/eval');
   if (!r.entry) { mount(sec, noResult(ctx)); return; }
   const m = r.entry.metrics, lab = (m.adapted.labels || []).map(k => r.labels[k] || k);
-  mount(sec, runCaption(r.entry), kpis(m, ['accuracy', 'f1_macro']),
+  mount(sec, runCaption(r.entry), kpis(m, ['accuracy', 'f1_macro']), howto('kpi'),
     r.low && r.low.length ? alert('Мало даних (оцінка ненадійна): ' + r.low.map(k => r.labels[k]).join(', '), 'wr') : null,
+    why(r.why),
+    freezeTable(r.freeze),
     h('div.grid.g2', panel('Zero-shot YAMNet (базовий рівень)', confusion(m.baseline.confusion, lab)),
-      panel('YAMNet + LR (адаптація)', confusion(m.adapted.confusion, lab))),
+      panel('YAMNet + LR (адаптація)', confusion(m.adapted.confusion, lab))), howto('confusion'),
     h('h2', 'Записи з помилками хоча б одного методу'),
-    r.errors.length ? table([[e => h('audio', { controls: true, preload: 'none', src: e.url }), 'Запис'], ['true', 'Істина'], ['pred', 'YAMNet + LR'], ['zero_shot', 'Zero-shot']], r.errors)
+    h('p.small.muted', 'Натисніть ▶, щоб послухати. Колонка «Чому могло статися» — типова причина такої плутанини.'),
+    r.errors.length ? table([[e => h('audio', { controls: true, preload: 'none', src: e.url }), 'Запис'], ['true', 'Істина'], ['pred', 'YAMNet + LR'], ['zero_shot', 'Zero-shot'],
+      [e => h('span.small', e.why || '—'), 'Чому могло статися']], r.errors)
       : alert('Помилок немає.', 'ok'));
 }
 
