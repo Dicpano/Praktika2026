@@ -1,0 +1,5 @@
+*.bat -text
+*.ps1 -text
+*.pdf binary
+*.flac binary
+*.wav binary

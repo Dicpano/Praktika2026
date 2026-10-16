@@ -1,0 +1,205 @@
+/* TL-Лабораторія 3.0 — тема «Кіберзахист». Без зовнішніх шрифтів: працює офлайн. */
+:root{
+  --bg:#05070a; --panel:#0b1219; --panel2:#08111a; --line:#12313a; --line2:#1c4a55;
+  --cyan:#00e5ff; --cyan-dim:#0e7c8a; --text:#b8f3ff; --muted:#5f8f99; --white:#e6fdff;
+  --good:#39ff9a; --warn:#ffb000; --bad:#ff3b5c; --pink:#ff3b8d;
+  --mono:"JetBrains Mono","Cascadia Code","Fira Code",Consolas,"DejaVu Sans Mono","Liberation Mono",monospace;
+  --side:290px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:15px}
+body{background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,229,255,.10), transparent 70%),
+    linear-gradient(rgba(0,229,255,.035) 1px, transparent 1px) 0 0/44px 44px,
+    linear-gradient(90deg, rgba(0,229,255,.035) 1px, transparent 1px) 0 0/44px 44px, var(--bg)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:1000;
+  background:repeating-linear-gradient(to bottom, rgba(0,229,255,.022) 0 1px, transparent 1px 3px)}
+#tl-bg{z-index:0}
+a{color:var(--cyan)}
+::selection{background:rgba(0,229,255,.3)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#04070a}
+::-webkit-scrollbar-thumb{background:#123842;border-radius:5px}::-webkit-scrollbar-thumb:hover{background:#1c4a55}
+
+/* ---------- каркас ---------- */
+#side{position:fixed;left:0;top:0;bottom:0;width:var(--side);z-index:5;overflow-y:auto;
+  background:linear-gradient(180deg,rgba(7,12,18,.97),rgba(4,6,10,.97));border-right:1px solid var(--line);padding:18px 14px}
+#main{position:relative;z-index:2;margin-left:var(--side);min-height:100vh;padding:26px 42px 60px;
+  background:radial-gradient(ellipse 70% 60% at 40% 30%, rgba(5,7,10,.72), rgba(5,7,10,.35) 70%, transparent)}
+#page{max-width:1500px}
+.logo{display:block;margin:0 0 18px 4px;width:210px}
+.nav-h{color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-size:.68rem;margin:16px 6px 6px}
+.nav a{display:flex;gap:10px;align-items:center;color:var(--text);text-decoration:none;padding:8px 10px;font-size:.86rem;
+  border-left:2px solid transparent;transition:background .15s,border-color .15s}
+.nav a:hover{background:rgba(0,229,255,.05);border-left-color:var(--cyan-dim)}
+.nav a.on{background:rgba(0,229,255,.10);border-left-color:var(--cyan);box-shadow:inset 8px 0 18px -10px var(--cyan);color:var(--white)}
+.nav .ic{width:18px;text-align:center;color:var(--cyan);opacity:.85}
+.nav .badge{margin-left:auto;font-size:.7rem;color:var(--good)}
+.side-sep{border-top:1px solid var(--line);margin:14px 0}
+.side-row{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);padding:4px 6px}
+
+/* ---------- монітор задач у бічній панелі ---------- */
+.tl-jobs{border:1px solid var(--line);background:rgba(0,229,255,.03);padding:8px 10px;margin:6px 0}
+.tl-jobs .hd{font-size:.68rem;letter-spacing:.12em;color:var(--muted);margin-bottom:6px}
+.tl-jobrow{font-size:.75rem;margin:6px 0;cursor:pointer}
+.tl-jobbar{height:3px;background:#0b2a31;margin:3px 0}.tl-jobbar i{display:block;height:100%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);transition:width .4s}
+.tl-jobmsg{color:var(--muted);font-size:.7rem}
+
+/* ---------- заголовок сторінки ---------- */
+.tl-head{margin:0 0 18px}
+.tl-prompt{color:var(--muted);font-size:.8rem}.tl-prompt b{color:var(--good);font-weight:500}
+.tl-title{font-size:2rem;font-weight:700;color:var(--white);margin:.25rem 0 .35rem;line-height:1.15;
+  text-shadow:0 0 14px rgba(0,229,255,.45);animation:glitch 6s infinite steps(1)}
+.tl-title span{color:var(--cyan)}
+@keyframes glitch{0%,93%,100%{text-shadow:0 0 14px rgba(0,229,255,.45);transform:none}
+  94%{text-shadow:-2px 0 var(--pink),2px 0 var(--cyan);transform:translateX(1px)}
+  96%{text-shadow:2px 0 var(--pink),-2px 0 var(--cyan);transform:translateX(-1px)}
+  98%{text-shadow:0 0 14px rgba(0,229,255,.45);transform:skewX(-2deg)}}
+.tl-banner{display:inline-block;font-size:.7rem;color:var(--warn);border:1px solid rgba(255,176,0,.35);padding:.15rem .5rem;
+  letter-spacing:.06em;text-transform:uppercase}
+.cursor::after{content:"█";color:var(--cyan);animation:blink 1s steps(1) infinite;margin-left:.2rem}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- переходи ---------- */
+@keyframes tl-in{from{opacity:0;transform:translateY(8px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+.anim #page>*,.anim .sec>*{animation:tl-in .35s cubic-bezier(.2,.7,.2,1) both}
+.anim .sec>*:nth-child(2){animation-delay:.04s}.anim .sec>*:nth-child(3){animation-delay:.08s}
+.anim .sec>*:nth-child(4){animation-delay:.12s}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+
+/* ---------- розділи (вкладки) ---------- */
+.tabs{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);width:max-content;max-width:100%;margin:0 0 20px;background:rgba(5,9,13,.8)}
+.tabs button{all:unset;cursor:pointer;padding:9px 16px;font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  border-right:1px solid var(--line);transition:color .15s,background .15s}
+.tabs button:last-child{border-right:0}
+.tabs button:hover{color:var(--text);background:rgba(0,229,255,.05)}
+.tabs button.on{color:var(--cyan);background:linear-gradient(to top,rgba(0,229,255,.14),rgba(0,229,255,.04));box-shadow:inset 0 -2px 0 var(--cyan)}
+.tabs.small button{padding:6px 12px;font-size:.72rem}
+
+/* ---------- типографіка ---------- */
+h2{color:var(--white);font-size:1.25rem;border-left:3px solid var(--cyan);padding-left:.6rem;margin:26px 0 12px}
+h3{color:var(--white);font-size:1.05rem;border-left:3px solid var(--cyan);padding-left:.55rem;margin:20px 0 10px}
+p{line-height:1.6;margin:.4rem 0 .8rem}
+.muted{color:var(--muted)}.small{font-size:.8rem}.c-ok{color:var(--good)}.c-wr{color:var(--warn)}.c-er{color:var(--bad)}.c-cy{color:var(--cyan)}
+code{background:rgba(0,229,255,.08);padding:0 4px;border-radius:2px}
+.md li{margin:.25rem 0;line-height:1.55}.md table{border-collapse:collapse;margin:8px 0}.md th,.md td{border:1px solid var(--line);padding:4px 8px}
+.md .katex-display{margin:.8rem 0;padding:.5rem .8rem;background:rgba(0,229,255,.04);border-left:2px solid var(--line2);overflow-x:auto}
+
+/* ---------- блоки ---------- */
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:1200px){.g3,.g4,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.panel{border:1px solid var(--line);background:rgba(11,18,25,.72);padding:14px 16px}
+.panel>.hd{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:-2px 0 10px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.row.end{justify-content:flex-end}.grow{flex:1}
+.alert{border:1px solid var(--line2);border-left:3px solid var(--cyan);background:rgba(8,14,20,.92);padding:10px 14px;margin:10px 0;line-height:1.5}
+.alert.wr{border-left-color:var(--warn);color:var(--warn)}.alert.er{border-left-color:var(--bad);color:#ffb3c0}
+.alert.ok{border-left-color:var(--good);color:var(--good)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line2);border-top-color:var(--cyan);border-radius:50%;animation:rot 1s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.skeleton{height:120px;background:linear-gradient(90deg,rgba(0,229,255,.03),rgba(0,229,255,.08),rgba(0,229,255,.03));background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+
+/* ---------- кнопки й поля ---------- */
+.btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--cyan-dim);color:var(--cyan);padding:8px 14px;
+  text-transform:uppercase;letter-spacing:.08em;font-size:.76rem;transition:all .15s;background:transparent}
+.btn:hover{background:rgba(0,229,255,.09);border-color:var(--cyan);box-shadow:0 0 14px rgba(0,229,255,.35)}
+.btn.primary{background:rgba(0,229,255,.13);border-color:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,.25)}
+.btn.danger{border-color:#7a2332;color:#ff7d93}.btn.danger:hover{background:rgba(255,59,92,.1);box-shadow:0 0 14px rgba(255,59,92,.3)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn.sm{padding:5px 10px;font-size:.7rem}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:.78rem;color:var(--muted);min-width:180px}
+input,select,textarea{font-family:var(--mono);font-size:.88rem;background:#060c12;color:var(--text);border:1px solid var(--line2);padding:8px 10px;border-radius:0;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,229,255,.3)}
+textarea{width:100%;min-height:90px;resize:vertical;line-height:1.5}
+input[type=range]{accent-color:var(--cyan);padding:0;border:0;background:transparent}
+input[type=checkbox]{accent-color:var(--cyan);width:16px;height:16px}
+.val{color:var(--cyan);font-size:.8rem}
+.drop{border:1px dashed var(--line2);padding:16px;text-align:center;color:var(--muted);cursor:pointer;transition:all .15s}
+.drop:hover,.drop.over{border-color:var(--cyan);color:var(--text);background:rgba(0,229,255,.04)}
+
+/* ---------- таблиці ---------- */
+table.t{border-collapse:collapse;width:100%;font-size:.84rem}
+table.t th{color:var(--cyan);text-transform:uppercase;font-size:.7rem;letter-spacing:.06em;text-align:left;border-bottom:1px solid var(--line2);padding:7px 8px;position:sticky;top:0;background:#071017}
+table.t td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+table.t tr:hover td{background:rgba(0,229,255,.03)}
+.scroll{max-height:440px;overflow:auto;border:1px solid var(--line)}
+table.t td[contenteditable]{outline:none}table.t td[contenteditable]:focus{background:rgba(0,229,255,.07)}
+
+/* ---------- великі метрики «до → після» ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:6px 0 14px}
+.kpi{border:1px solid var(--line);padding:14px 16px;background:linear-gradient(160deg,rgba(0,229,255,.07),rgba(11,18,25,.5))}
+.kpi .n{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-size:1.65rem;color:var(--white);margin-top:6px}.kpi .v .a{color:var(--good);text-shadow:0 0 10px rgba(57,255,154,.4)}
+.kpi .v .ar{color:var(--muted);font-size:1.1rem;margin:0 6px}.kpi .d{font-size:.78rem;margin-top:4px}
+body.present .kpi .v{font-size:2.6rem}body.present .param{display:none !important}
+body.present #main{padding-top:18px}
+
+/* ---------- консоль подій ---------- */
+.term{background:#020406;border:1px solid var(--line);padding:9px 12px;font-size:.78rem;line-height:1.55;color:#7ff6ff;min-height:4.5rem;
+  box-shadow:inset 0 0 30px rgba(0,229,255,.05);white-space:pre-wrap;max-height:300px;overflow:auto}
+.term .hd{color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:5px;padding-bottom:3px;font-size:.7rem;letter-spacing:.1em}
+.term .t{color:var(--muted)}.term .ok{color:var(--good)}.term .wr{color:var(--warn)}.term .er{color:var(--bad)}
+.prog{height:6px;background:#0b2a31;margin:8px 0 4px;position:relative;overflow:hidden}
+.prog i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));box-shadow:0 0 10px var(--cyan);transition:width .4s}
+.jobbox{border:1px solid var(--line);padding:12px 14px;background:rgba(5,10,14,.85);margin:12px 0}
+.jobbox .top{display:flex;gap:10px;align-items:center;font-size:.86rem}
+
+/* ---------- картки модулів (ситуаційна панель) ---------- */
+.mcard{position:relative;border:1px solid var(--line);padding:16px 16px 10px;min-height:210px;cursor:pointer;
+  background:linear-gradient(160deg,rgba(0,229,255,.06),rgba(11,18,25,.45) 45%,rgba(5,7,10,.5));
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));transition:border-color .2s,box-shadow .2s,transform .2s}
+.mcard:hover{border-color:var(--cyan);box-shadow:0 0 22px rgba(0,229,255,.18) inset;transform:translateY(-2px)}
+.mcard .code{font-size:.72rem;color:var(--cyan);letter-spacing:.14em}
+.mcard .name{font-size:1rem;color:var(--white);font-weight:700;margin:.25rem 0 .1rem;line-height:1.3}
+.mcard .model{font-size:.74rem;color:var(--muted);margin-bottom:.6rem}
+.mcard .r{font-size:.77rem;display:flex;justify-content:space-between;border-top:1px dashed var(--line);padding:.3rem 0}
+.mcard .r span:first-child{color:var(--muted)}
+.dot{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;margin-right:.35rem;vertical-align:middle}
+.dot.ok{background:var(--good);box-shadow:0 0 8px var(--good);animation:pulse 2.4s infinite}.dot.wr{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.dot.er{background:var(--bad);box-shadow:0 0 8px var(--bad)}@keyframes pulse{50%{opacity:.45}}
+.boot{font-size:.8rem;color:var(--muted);margin:.4rem 0 1.2rem;line-height:1.6}.boot div{opacity:0;animation:tl-in .25s ease-out forwards}
+.boot .ok{color:var(--good)}.boot .wr{color:var(--warn)}.boot .er{color:var(--bad)}
+
+/* ---------- галереї ---------- */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.thumb{position:relative;border:1px solid var(--line);background:#04080c;aspect-ratio:1/1;overflow:hidden;cursor:pointer}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
+.thumb:hover img{transform:scale(1.04)}
+.thumb .cap{position:absolute;left:0;right:0;bottom:0;font-size:.66rem;padding:3px 6px;background:rgba(2,4,6,.82);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb.sel{outline:2px solid var(--bad)}.thumb.sel::after{content:"✕";position:absolute;top:4px;right:6px;color:var(--bad);font-weight:700;text-shadow:0 0 4px #000}
+.dupgrp{display:flex;gap:10px;align-items:stretch;border:1px solid var(--line);padding:8px;margin:8px 0;background:rgba(5,10,14,.7)}
+.dupgrp .thumb{width:150px}.dupgrp .keep{outline:2px solid var(--good)}
+.imgbox img{max-width:100%;border:1px solid var(--line)}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.lb img{max-width:90vw;max-height:88vh;border:1px solid var(--cyan-dim)}
+
+/* ---------- аудіо ---------- */
+audio{height:32px;width:100%;filter:invert(.88) hue-rotate(160deg) saturate(2)}
+.alist .it{display:grid;grid-template-columns:24px 1fr 2fr;gap:10px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:.78rem}
+
+/* ---------- підказки-терміни ---------- */
+.term-q{border-bottom:1px dotted var(--cyan);cursor:help;position:relative}
+.tip{position:fixed;z-index:3000;max-width:420px;background:#061017;border:1px solid var(--cyan-dim);padding:10px 12px;font-size:.8rem;line-height:1.5;
+  box-shadow:0 0 22px rgba(0,229,255,.2);pointer-events:none}
+.tip b{color:var(--cyan)}
+
+/* ---------- toast ---------- */
+#toasts{position:fixed;right:20px;bottom:20px;z-index:3000;display:flex;flex-direction:column;gap:8px}
+.toast{background:#061017;border:1px solid var(--cyan-dim);border-left:3px solid var(--cyan);padding:10px 14px;font-size:.82rem;max-width:420px;animation:tl-in .25s}
+.toast.er{border-left-color:var(--bad)}.toast.wr{border-left-color:var(--warn)}
+
+/* ---------- складані блоки ---------- */
+details.x{border:1px solid var(--line);background:rgba(11,18,25,.6);margin:8px 0}
+details.x>summary{cursor:pointer;padding:10px 14px;color:var(--white);list-style:none}
+details.x>summary::before{content:"▸ ";color:var(--cyan)}details.x[open]>summary::before{content:"▾ "}
+details.x>div{padding:4px 16px 14px}
+
+/* ---------- словник ---------- */
+.gl{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+.gl .it{border:1px solid var(--line);padding:12px 14px;background:rgba(11,18,25,.65)}
+.gl .it h4{margin:0 0 6px;color:var(--cyan);font-size:.95rem}.gl .it .mods{float:right;font-size:.68rem;color:var(--muted)}
+.gl .it .ex{color:var(--muted);font-size:.82rem;margin-top:6px;border-top:1px dashed var(--line);padding-top:6px}
+mark{background:rgba(0,229,255,.25);color:var(--white)}
+
+.plot{width:100%;min-height:260px}
+table.t audio{min-width:230px}

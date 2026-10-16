@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" width="240" height="48">
+  <defs>
+    <filter id="g" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#00e5ff" stroke-width="2" filter="url(#g)">
+    <path d="M4 14 V4 H14"/><path d="M34 4 H44 V14"/><path d="M44 34 V44 H34"/><path d="M14 44 H4 V34"/>
+    <circle cx="24" cy="24" r="9"/>
+  </g>
+  <circle cx="24" cy="24" r="3" fill="#00e5ff" filter="url(#g)"/>
+  <text x="56" y="31" font-family="Consolas, 'DejaVu Sans Mono', monospace" font-size="22" font-weight="700"
+        fill="#e6fdff" filter="url(#g)">TL-LAB</text>
+  <text x="146" y="31" font-family="Consolas, 'DejaVu Sans Mono', monospace" font-size="13" fill="#00e5ff">::CYBER-OPS</text>
+</svg>
