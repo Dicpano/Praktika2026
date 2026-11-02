@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Штаб-аналітик — тренажер ІАЗ</title>
+<meta name="description" content="Ігровий тренажер елементів інформаційно-аналітичного забезпечення: облік, класифікація, оцінка достовірності, аналіз і доведення розвідданих.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Russo+One&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <div class="brand-name">ШТАБ-АНАЛІТИК</div>
+      <div class="brand-sub">тренажер інформаційно-аналітичного забезпечення</div>
+    </div>
+  </div>
+  <nav class="lvl-nav">
+    <button id="prev" class="btn-icon" aria-label="Попереднє завдання">◀</button>
+    <button id="menuBtn" class="lvl-counter" aria-label="Список завдань">ЗАВДАННЯ <b id="lvlNum">01</b>/<span id="lvlTotal">00</span> ☰</button>
+    <button id="next" class="btn-icon" aria-label="Наступне завдання">▶</button>
+  </nav>
+  <div class="rank">
+    <span class="rank-label">ЗВАННЯ</span>
+    <span id="rank" class="rank-name">Рекрут</span>
+    <button id="helpBtn" class="btn-icon" aria-label="Брифінг">?</button>
+  </div>
+</header>
+<div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+
+<main class="layout">
+  <section class="main">
+    <div class="order">
+      <div class="order-head">
+        <span id="stageLabel" class="stage-tag"></span>
+        <span id="orderNo" class="order-no"></span>
+        <span id="doneMark" class="done-mark" hidden>✔ ВИКОНАНО</span>
+      </div>
+      <p id="orderText" class="order-text"></p>
+    </div>
+
+    <div class="board-wrap" id="boardWrap">
+      <div class="board-caption"><span>КАРТА ОБСТАНОВКИ</span><span>М 1:50 000</span></div>
+      <div id="board" class="board"></div>
+      <div id="tooltip" class="tooltip" hidden></div>
+    </div>
+
+    <div class="console">
+      <div class="term">
+        <div class="pane-head"><span>ТЕРМІНАЛ ЗАПИТІВ</span><span class="pane-file">query.css</span></div>
+        <div class="term-body">
+          <div class="term-lines" aria-hidden="true">1<br>2<br>3<br>4<br>5<br>6</div>
+          <div class="term-code">
+            <div class="term-comment">/* Напишіть селектор, що відбирає позначені об'єкти */</div>
+            <form id="form" class="term-input-row" autocomplete="off">
+              <span class="prompt">&gt;</span>
+              <input id="input" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="напр. report" aria-label="Селектор">
+              <button class="btn-fire" type="submit">ВИКОНАТИ</button>
+            </form>
+            <div id="status" class="term-status"></div>
+            <div id="log" class="term-log"></div>
+          </div>
+        </div>
+        <div class="term-foot">
+          <button id="hintBtn" class="btn-ghost" type="button">ПІДКАЗКА</button>
+          <div id="hint" class="hint" hidden></div>
+        </div>
+      </div>
+
+      <div class="viewer">
+        <div class="pane-head"><span>ЖУРНАЛ ОБСТАНОВКИ</span><span class="pane-file">situation.html</span></div>
+        <div id="viewer" class="viewer-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="sidebar">
+    <div class="panel">
+      <div class="panel-head">ДОВІДКА · СИНТАКСИС</div>
+      <h2 id="syntaxName" class="syntax-name"></h2>
+      <code id="syntax" class="syntax-big"></code>
+      <p id="syntaxDesc" class="syntax-desc"></p>
+      <div id="examples" class="examples"></div>
+    </div>
+    <div class="panel doctrine">
+      <div class="panel-head">ДОКТРИНА ІАЗ</div>
+      <h3 id="docTitle" class="doc-title"></h3>
+      <div id="docBody" class="doc-body"></div>
+    </div>
+  </aside>
+</main>
+
+<footer class="footer">
+  Навчальний тренажер. Усі дані, сектори й ситуації вигадані. Мова запитів — стандартні CSS-селектори.
+</footer>
+
+<!-- Список завдань -->
+<div id="menu" class="drawer" hidden>
+  <div class="drawer-card">
+    <div class="drawer-head"><span>ПЛАН ПІДГОТОВКИ</span><button class="btn-icon" data-close aria-label="Закрити">✕</button></div>
+    <div id="menuList" class="menu-list"></div>
+    <button id="resetBtn" class="btn-ghost danger" type="button">СКИНУТИ ПРОГРЕС</button>
+  </div>
+</div>
+
+<!-- Брифінг -->
+<div id="intro" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-kicker">БРИФІНГ · ДЛЯ НАВЧАННЯ</div>
+    <h2 class="modal-title">Вітаю, аналітику.</h2>
+    <p>Ви — офіцер групи інформаційно-аналітичного забезпечення на КП бригади. Донесення надходять безперервно: агентурні, радіоперехоплення, знімки з БпЛА, відкриті джерела. Ваша зброя — <b>запит-селектор</b>: він миттєво відбирає з потоку саме те, що потрібно командиру.</p>
+    <ol class="steps">
+      <li>Прочитайте <b>НАКАЗ</b> над картою.</li>
+      <li>Об'єкти, взяті в <span class="amber">жовті кутники</span> й що погойдуються, — це те, що треба відібрати.</li>
+      <li>Напишіть селектор у <b>ТЕРМІНАЛ</b>. Те, що потрапляє в приціл, підсвічується <span class="green">зеленим</span>. Натисніть Enter.</li>
+      <li>Праворуч — довідка: синтаксис і доктрина ІАЗ для кожного завдання.</li>
+    </ol>
+    <p class="muted">23 завдання, 5 етапів циклу ІАЗ: облік → класифікація → оцінка → аналіз → доведення. За виконані завдання присвоюються звання.</p>
+    <button class="btn-fire wide" data-close type="button">ДО ВИКОНАННЯ</button>
+  </div>
+</div>
+
+<!-- Дебрифінг -->
+<div id="finale" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-kicker">ДЕБРИФІНГ</div>
+    <h2 class="modal-title">Місію виконано</h2>
+    <div class="finale-stats">
+      <div><span class="fs-num" id="fRank"></span><span class="fs-lbl">звання</span></div>
+      <div><span class="fs-num" id="fClean"></span><span class="fs-lbl">без підказок</span></div>
+      <div><span class="fs-num" id="fHint"></span><span class="fs-lbl">з рішенням</span></div>
+    </div>
+    <p>Шпаргалка: які запити відповідають яким операціям ІАЗ.</p>
+    <div id="cheat" class="cheat"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" data-close type="button">ДО ЗАВДАНЬ</button>
+      <button id="restartBtn" class="btn-fire" type="button">ПРОЙТИ ЗНОВУ</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/levels.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
