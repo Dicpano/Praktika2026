@@ -225,8 +225,9 @@
     ui.log.replaceChildren();
     ui.hint.hidden = true;
     ui.hintBtn.hidden = false;
-    ui.hintBtn.textContent = 'ПІДКАЗКА';
+    ui.hintBtn.textContent = '💡 ПІДКАЗКА';
     ui.tooltip.hidden = true;
+    clearTimeout(diffTimer);
 
     updateProgress();
     if (window.matchMedia('(hover: hover)').matches) ui.input.focus();
@@ -249,6 +250,7 @@
   // Живий приціл: що зараз відбирає введений селектор
   function preview() {
     if (locked || !root) return;
+    clearDiff();
     root.querySelectorAll('*').forEach((n) => mark(n, 'is-aimed', false));
     const sel = ui.input.value.trim();
     if (!sel) { setStatus(''); return; }
@@ -269,18 +271,48 @@
     const got = new Set(found);
     const missed = [...expected].filter((n) => !got.has(n)).length;
     const extra = found.filter((n) => !expected.has(n)).length;
+    remember(sel);
     if (!missed && !extra) success(sel);
-    else fail(sel, `ВІДМОВА · пропущено: ${missed} · зайвих: ${extra}`);
+    else fail(sel, `ВІДМОВА · пропущено: ${missed} · зайвих: ${extra}`, found);
   });
 
-  function fail(sel, text) {
+  // Історія запитів: ↑ / ↓ у терміналі
+  const history = [];
+  let histPos = 0;
+  function remember(sel) {
+    if (history[history.length - 1] !== sel) history.push(sel);
+    histPos = history.length;
+  }
+  ui.input.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    if (!history.length) return;
+    e.preventDefault();
+    histPos = Math.max(0, Math.min(history.length, histPos + (e.key === 'ArrowUp' ? -1 : 1)));
+    ui.input.value = history[histPos] || '';
+    preview();
+  });
+
+  // Розбір помилки: червоним — пропущене, помаранчевим — зайве
+  let diffTimer = 0;
+  function clearDiff() {
+    clearTimeout(diffTimer);
+    if (root) root.querySelectorAll('*').forEach((n) => { mark(n, 'is-missed', false); mark(n, 'is-extra', false); });
+  }
+  function fail(sel, text, found) {
     log('err', sel, '✖ ' + text);
     ui.board.classList.remove('shake');
     void ui.board.offsetWidth;
     ui.board.classList.add('shake');
+    clearDiff();
+    if (!found) return;
+    const got = new Set(found);
+    expected.forEach((n) => { if (!got.has(n)) mark(n, 'is-missed', true); });
+    found.forEach((n) => { if (!expected.has(n)) mark(n, 'is-extra', true); });
+    diffTimer = setTimeout(clearDiff, 2600);
   }
 
   function success(sel) {
+    clearDiff();
     locked = true;
     ui.input.disabled = true;
     const i = state.current;
@@ -323,7 +355,7 @@
     ui.hint.hidden = false;
     if (hintStep === 1) {
       ui.hint.innerHTML = L.hint;
-      ui.hintBtn.textContent = 'ПОКАЗАТИ РІШЕННЯ';
+      ui.hintBtn.textContent = '🔓 ПОКАЗАТИ РІШЕННЯ';
     } else {
       state.hinted[state.current] = true;
       save();
@@ -333,11 +365,55 @@
   });
 
   // ---------- Прогрес, звання, меню ----------
+  const STAGE_SHORT = ['ОБЛІК', 'КЛАСИФІКАЦІЯ', 'ОЦІНКА', 'АНАЛІЗ', 'ДОВЕДЕННЯ'];
   function updateProgress() {
     const n = doneCount();
-    $('progressBar').style.width = (n / LEVELS.length * 100) + '%';
+    const ri = rankIdx(n);
     $('rank').textContent = rankName(n);
+    $('rankChev').innerHTML = '<i></i>'.repeat(Math.min(ri, 4)) + (ri > 4 ? '<b>★</b>'.repeat(ri - 4) : '');
     $('lvlTotal').textContent = pad(LEVELS.length);
+
+    const cur = LEVELS[state.current].stage;
+    $('stages').replaceChildren(...STAGES.map((_, si) => {
+      const idx = LEVELS.map((L, i) => (L.stage === si ? i : -1)).filter((i) => i >= 0);
+      const done = idx.filter((i) => state.done[i]).length;
+      const seg = el('button', 'stage-seg' + (si === cur ? ' is-current' : '') + (done === idx.length ? ' is-done' : ''),
+        `<span class="seg-name"><b>${'I II III IV V'.split(' ')[si]}</b> ${STAGE_SHORT[si]}</span>` +
+        `<span class="seg-count">${done}/${idx.length}</span><span class="seg-fill" style="width:${done / idx.length * 100}%"></span>`);
+      seg.type = 'button';
+      seg.title = STAGES[si];
+      seg.addEventListener('click', () => loadLevel(idx.find((i) => !state.done[i]) ?? idx[0]));
+      return seg;
+    }));
+  }
+
+  // ---------- Довідник ----------
+  function openHelp(tab) {
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('is-active', t.dataset.tab === tab));
+    document.querySelectorAll('.tab-pane').forEach((p) => { p.hidden = p.dataset.pane !== tab; });
+    ['menu', 'intro', 'finale'].forEach((id) => { $(id).hidden = true; });
+    open('help');
+  }
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => openHelp(t.dataset.tab)));
+  document.querySelectorAll('[data-help]').forEach((b) => b.addEventListener('click', () => openHelp(b.dataset.help)));
+
+  function buildLegend() {
+    const srcDesc = { humint: 'агентурна', sigint: 'радіоелектронна', imint: 'видова', osint: 'відкриті джерела' };
+    $('legendStrip').replaceChildren(...Object.keys(SOURCES).map((k) =>
+      el('span', 'lg-src src-' + k, `<i></i>${SOURCES[k]}`)));
+    const tgt = Object.keys(TARGETS).map((k) =>
+      `<div class="lg-item"><span class="lg-sym">${targetSvg(k)}</span><span><b>${TARGETS[k]}</b><code>.${k}</code></span></div>`).join('');
+    const src = Object.keys(SOURCES).map((k) =>
+      `<div class="lg-item"><span class="lg-card src-${k}">${SRC_ICON[k]}</span><span><b>${SOURCES[k]}</b> — ${srcDesc[k]}<code>.${k}</code></span></div>`).join('');
+    $('legendFull').innerHTML =
+      `<h4>Цілі противника <span class="muted">(ромб — ворожий об'єкт)</span></h4><div class="lg-grid">${tgt}</div>` +
+      `<h4>Донесення <span class="muted">(колір смуги — вид розвідки)</span></h4><div class="lg-grid">${src}</div>` +
+      `<h4>Позначки на донесеннях</h4><div class="lg-grid">
+        <div class="lg-item"><span class="lg-stamp">B2</span><span>оцінка за адміралтейською системою</span></div>
+        <div class="lg-item"><span class="rp-prio p-flash">FLASH</span><span>категорія терміновості</span></div>
+        <div class="lg-item"><span class="rp-ok">✔ ПЕРЕВІРЕНО</span><span>атрибут <code>verified</code></span></div>
+        <div class="lg-item"><span class="lg-sym">${FIRE_SVG}</span><span>вогневе ураження <code>fire</code></span></div>
+      </div>`;
   }
 
   function renderMenu() {
@@ -360,18 +436,25 @@
   }
 
   function open(id) { $(id).hidden = false; }
+  const OVERLAYS = ['menu', 'intro', 'finale', 'help'];
   function closeAll() {
-    ['menu', 'intro', 'finale'].forEach((id) => { $(id).hidden = true; });
+    OVERLAYS.forEach((id) => { $(id).hidden = true; });
     if (!state.introSeen) { state.introSeen = true; save(); }
   }
   document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeAll));
-  ['menu', 'intro', 'finale'].forEach((id) => {
+  OVERLAYS.forEach((id) => {
     $(id).addEventListener('click', (e) => { if (e.target.id === id) closeAll(); });
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAll();
+    else if (e.key === 'F1') { e.preventDefault(); openHelp('howto'); }
+    else if (e.altKey && (e.code === 'KeyH')) { e.preventDefault(); if (!ui.hintBtn.hidden) ui.hintBtn.click(); }
+    else if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); loadLevel(state.current - 1); }
+    else if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); loadLevel(state.current + 1); }
+  });
 
   $('menuBtn').addEventListener('click', () => { renderMenu(); open('menu'); });
-  $('helpBtn').addEventListener('click', () => open('intro'));
+  $('helpBtn').addEventListener('click', () => openHelp('howto'));
   $('prev').addEventListener('click', () => loadLevel(state.current - 1));
   $('next').addEventListener('click', () => loadLevel(state.current + 1));
   $('resetBtn').addEventListener('click', () => {
@@ -410,6 +493,7 @@
   }
 
   // ---------- Старт ----------
+  buildLegend();
   loadLevel(Math.min(state.current || 0, LEVELS.length - 1));
   if (!state.introSeen) open('intro');
 })();

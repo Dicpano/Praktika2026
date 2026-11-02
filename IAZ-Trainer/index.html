@@ -14,45 +14,76 @@
 
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark" aria-hidden="true"></span>
+    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24 3l19 8v12c0 11-8 19-19 22C13 42 5 34 5 23V11z" fill="#1b2116" stroke="#e5a930" stroke-width="2.5"/>
+      <circle cx="24" cy="23" r="9" fill="none" stroke="#e5a930" stroke-width="2"/>
+      <path d="M24 10v26M11 23h26" stroke="#e5a930" stroke-width="2"/>
+      <circle cx="24" cy="23" r="2.5" fill="#e5a930"/>
+    </svg>
     <div>
       <div class="brand-name">ШТАБ-АНАЛІТИК</div>
       <div class="brand-sub">тренажер інформаційно-аналітичного забезпечення</div>
     </div>
   </div>
   <nav class="lvl-nav">
-    <button id="prev" class="btn-icon" aria-label="Попереднє завдання">◀</button>
-    <button id="menuBtn" class="lvl-counter" aria-label="Список завдань">ЗАВДАННЯ <b id="lvlNum">01</b>/<span id="lvlTotal">00</span> ☰</button>
-    <button id="next" class="btn-icon" aria-label="Наступне завдання">▶</button>
+    <button id="prev" class="btn-icon" aria-label="Попереднє завдання" title="Попереднє завдання">◀</button>
+    <button id="menuBtn" class="lvl-counter" aria-label="Список завдань" title="План підготовки">ЗАВДАННЯ <b id="lvlNum">01</b><span class="slash">/</span><span id="lvlTotal">00</span></button>
+    <button id="next" class="btn-icon" aria-label="Наступне завдання" title="Наступне завдання">▶</button>
   </nav>
   <div class="rank">
-    <span class="rank-label">ЗВАННЯ</span>
-    <span id="rank" class="rank-name">Рекрут</span>
-    <button id="helpBtn" class="btn-icon" aria-label="Брифінг">?</button>
+    <div class="rank-box">
+      <span class="rank-chevrons" id="rankChev" aria-hidden="true"></span>
+      <div><span class="rank-label">ЗВАННЯ</span><span id="rank" class="rank-name">Рекрут</span></div>
+    </div>
+    <button id="helpBtn" class="btn-help" title="Довідник (F1)">? ДОВІДНИК</button>
   </div>
 </header>
-<div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+<div id="stages" class="stages" aria-label="Прогрес за етапами"></div>
 
 <main class="layout">
   <section class="main">
-    <div class="order">
-      <div class="order-head">
+    <article class="order frame">
+      <div class="order-top">
+        <div>
+          <div class="order-kicker">БОЙОВЕ РОЗПОРЯДЖЕННЯ</div>
+          <div id="orderNo" class="order-no"></div>
+        </div>
         <span id="stageLabel" class="stage-tag"></span>
-        <span id="orderNo" class="order-no"></span>
-        <span id="doneMark" class="done-mark" hidden>✔ ВИКОНАНО</span>
       </div>
       <p id="orderText" class="order-text"></p>
-    </div>
+      <span class="order-stamp" aria-hidden="true">НАВЧАЛЬНЕ</span>
+      <span id="doneMark" class="done-mark" hidden>✔ ВИКОНАНО</span>
+    </article>
 
-    <div class="board-wrap" id="boardWrap">
-      <div class="board-caption"><span>КАРТА ОБСТАНОВКИ</span><span>М 1:50 000</span></div>
+    <div class="board-wrap frame" id="boardWrap">
+      <svg class="terrain" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <pattern id="forest" width="14" height="14" patternUnits="userSpaceOnUse">
+            <circle cx="7" cy="7" r="2.2" fill="#6f8a3a"/>
+          </pattern>
+        </defs>
+        <g fill="none" stroke="#bfae86" stroke-opacity=".09" stroke-width="1.5">
+          <ellipse cx="250" cy="160" rx="210" ry="120"/><ellipse cx="250" cy="160" rx="150" ry="82"/><ellipse cx="250" cy="160" rx="85" ry="44"/>
+          <ellipse cx="790" cy="270" rx="230" ry="130"/><ellipse cx="790" cy="270" rx="160" ry="88"/><ellipse cx="790" cy="270" rx="90" ry="46"/>
+        </g>
+        <path d="M-10 330 C 140 290, 220 380, 380 330 S 620 230, 760 280 S 940 360, 1010 300" fill="none" stroke="#3f8fb0" stroke-opacity=".28" stroke-width="9"/>
+        <path d="M-10 330 C 140 290, 220 380, 380 330 S 620 230, 760 280 S 940 360, 1010 300" fill="none" stroke="#7fc0dc" stroke-opacity=".12" stroke-width="2"/>
+        <path d="M120 -10 L 300 120 L 520 150 L 700 60 L 1010 90" fill="none" stroke="#bfae86" stroke-opacity=".16" stroke-width="3" stroke-dasharray="14 8"/>
+        <path d="M560 360 c 40-50 120-60 160-20 c 30 30 -20 70 -80 60 c -40 -6 -90 -10 -80 -40z" fill="url(#forest)" opacity=".3"/>
+        <path d="M60 60 c 50-40 130-30 150 10 c 15 35 -40 60 -90 50 c -40 -8 -80 -30 -60 -60z" fill="url(#forest)" opacity=".3"/>
+        <path d="M840 40 c 40-20 110-10 120 30 c 8 30 -50 40 -90 30 c -30 -8 -50 -40 -30 -60z" fill="url(#forest)" opacity=".26"/>
+      </svg>
+      <div class="ruler ruler-top" aria-hidden="true"><span>А</span><span>Б</span><span>В</span><span>Г</span><span>Д</span><span>Е</span><span>Ж</span><span>З</span></div>
+      <div class="ruler ruler-left" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+      <div class="board-caption"><span>◈ КАРТА ОБСТАНОВКИ</span><span>М 1:50 000</span></div>
       <div id="board" class="board"></div>
+      <div id="legendStrip" class="legend-strip"></div>
       <div id="tooltip" class="tooltip" hidden></div>
     </div>
 
     <div class="console">
-      <div class="term">
-        <div class="pane-head"><span>ТЕРМІНАЛ ЗАПИТІВ</span><span class="pane-file">query.css</span></div>
+      <div class="term frame">
+        <div class="pane-head"><span><i class="led"></i>ТЕРМІНАЛ ЗАПИТІВ</span><span class="pane-file">query.css</span></div>
         <div class="term-body">
           <div class="term-lines" aria-hidden="true">1<br>2<br>3<br>4<br>5<br>6</div>
           <div class="term-code">
@@ -60,35 +91,37 @@
             <form id="form" class="term-input-row" autocomplete="off">
               <span class="prompt">&gt;</span>
               <input id="input" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="напр. report" aria-label="Селектор">
-              <button class="btn-fire" type="submit">ВИКОНАТИ</button>
+              <button class="btn-fire" type="submit">ВИКОНАТИ ⏎</button>
             </form>
             <div id="status" class="term-status"></div>
             <div id="log" class="term-log"></div>
           </div>
         </div>
         <div class="term-foot">
-          <button id="hintBtn" class="btn-ghost" type="button">ПІДКАЗКА</button>
+          <button id="hintBtn" class="btn-ghost" type="button">💡 ПІДКАЗКА</button>
+          <span class="keys"><kbd>Enter</kbd> виконати · <kbd>↑</kbd> історія · <kbd>F1</kbd> довідник</span>
           <div id="hint" class="hint" hidden></div>
         </div>
       </div>
 
-      <div class="viewer">
-        <div class="pane-head"><span>ЖУРНАЛ ОБСТАНОВКИ</span><span class="pane-file">situation.html</span></div>
+      <div class="viewer frame">
+        <div class="pane-head"><span><i class="led amber"></i>ЖУРНАЛ ОБСТАНОВКИ</span><span class="pane-file">situation.html</span></div>
         <div id="viewer" class="viewer-body"></div>
       </div>
     </div>
   </section>
 
   <aside class="sidebar">
-    <div class="panel">
-      <div class="panel-head">ДОВІДКА · СИНТАКСИС</div>
+    <div class="panel frame">
+      <div class="panel-head"><span>ДОВІДКА · СИНТАКСИС</span><button class="link-btn" data-help="selectors" type="button">усі селектори →</button></div>
       <h2 id="syntaxName" class="syntax-name"></h2>
       <code id="syntax" class="syntax-big"></code>
       <p id="syntaxDesc" class="syntax-desc"></p>
+      <div class="ex-label">ПРИКЛАДИ</div>
       <div id="examples" class="examples"></div>
     </div>
-    <div class="panel doctrine">
-      <div class="panel-head">ДОКТРИНА ІАЗ</div>
+    <div class="panel frame doctrine">
+      <div class="panel-head"><span>ДОКТРИНА ІАЗ</span><button class="link-btn" data-help="terms" type="button">словник →</button></div>
       <h3 id="docTitle" class="doc-title"></h3>
       <div id="docBody" class="doc-body"></div>
     </div>
@@ -115,13 +148,144 @@
     <h2 class="modal-title">Вітаю, аналітику.</h2>
     <p>Ви — офіцер групи інформаційно-аналітичного забезпечення на КП бригади. Донесення надходять безперервно: агентурні, радіоперехоплення, знімки з БпЛА, відкриті джерела. Ваша зброя — <b>запит-селектор</b>: він миттєво відбирає з потоку саме те, що потрібно командиру.</p>
     <ol class="steps">
-      <li>Прочитайте <b>НАКАЗ</b> над картою.</li>
-      <li>Об'єкти, взяті в <span class="amber">жовті кутники</span> й що погойдуються, — це те, що треба відібрати.</li>
-      <li>Напишіть селектор у <b>ТЕРМІНАЛ</b>. Те, що потрапляє в приціл, підсвічується <span class="green">зеленим</span>. Натисніть Enter.</li>
-      <li>Праворуч — довідка: синтаксис і доктрина ІАЗ для кожного завдання.</li>
+      <li>Прочитайте <b>бойове розпорядження</b> над картою.</li>
+      <li>Об'єкти в <span class="amber">жовтих кутниках</span>, що погойдуються, — це те, що треба відібрати.</li>
+      <li>Напишіть селектор у <b>термінал</b>. Те, що потрапляє в приціл, підсвічується <span class="green">зеленим</span>. Натисніть Enter.</li>
+      <li>Застрягли? <b>Підказка</b> під терміналом, а повний <b>довідник</b> — кнопка «? ДОВІДНИК» або F1.</li>
     </ol>
     <p class="muted">23 завдання, 5 етапів циклу ІАЗ: облік → класифікація → оцінка → аналіз → доведення. За виконані завдання присвоюються звання.</p>
-    <button class="btn-fire wide" data-close type="button">ДО ВИКОНАННЯ</button>
+    <div class="modal-actions">
+      <button class="btn-ghost" data-help="howto" type="button">ВІДКРИТИ ДОВІДНИК</button>
+      <button class="btn-fire" data-close type="button">ДО ВИКОНАННЯ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Довідник -->
+<div id="help" class="modal" hidden>
+  <div class="modal-card wide">
+    <div class="help-head">
+      <div>
+        <div class="modal-kicker">ДОВІДНИК АНАЛІТИКА</div>
+        <h2 class="modal-title">Допомога</h2>
+      </div>
+      <button class="btn-icon" data-close aria-label="Закрити">✕</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" data-tab="howto" role="tab" type="button">Як грати</button>
+      <button class="tab" data-tab="selectors" role="tab" type="button">Селектори</button>
+      <button class="tab" data-tab="terms" role="tab" type="button">Терміни ІАЗ</button>
+      <button class="tab" data-tab="admiralty" role="tab" type="button">Оцінка достовірності</button>
+      <button class="tab" data-tab="legend" role="tab" type="button">Легенда карти</button>
+    </div>
+
+    <section class="tab-pane" data-pane="howto">
+      <div class="help-grid">
+        <div class="help-card"><b>1. Наказ</b><p>Над картою — бойове розпорядження: що саме треба відібрати і для кого.</p></div>
+        <div class="help-card"><b>2. Ціль завдання</b><p>Потрібні об'єкти взяті в <span class="amber">жовті кутники</span> і погойдуються. Наведіть мишу — побачите їхню розмітку.</p></div>
+        <div class="help-card"><b>3. Запит</b><p>Напишіть CSS-селектор у терміналі. Поки друкуєте, все, що в прицілі, обводиться <span class="green">зеленим пунктиром</span>.</p></div>
+        <div class="help-card"><b>4. Перевірка</b><p>Enter — виконати. Зараховується, якщо відібрано <i>рівно</i> потрібні об'єкти — ні більше, ні менше.</p></div>
+      </div>
+      <h4>Якщо відповідь не прийнято</h4>
+      <ul class="help-list">
+        <li><span class="sw sw-missed"></span> <b>червоні кутники</b> — об'єкти, які ви <b>пропустили</b>;</li>
+        <li><span class="sw sw-extra"></span> <b>помаранчева штриховка</b> — <b>зайві</b> об'єкти, що потрапили в запит.</li>
+      </ul>
+      <h4>Підказки</h4>
+      <p>Кнопка «Підказка» спершу дає навідне питання, а з другого натискання — готове рішення. Завдання, виконане з рішенням, позначається ◐ у плані підготовки.</p>
+      <h4>Гарячі клавіші</h4>
+      <table class="help-table">
+        <tr><td><kbd>Enter</kbd></td><td>виконати запит</td></tr>
+        <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>попередні запити (історія)</td></tr>
+        <tr><td><kbd>F1</kbd></td><td>відкрити довідник</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>H</kbd></td><td>підказка</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></td><td>попереднє / наступне завдання</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>закрити вікно</td></tr>
+      </table>
+    </section>
+
+    <section class="tab-pane" data-pane="selectors">
+      <p class="muted">Усі прийоми, що трапляються в тренажері. Їх можна вільно поєднувати.</p>
+      <table class="help-table sel-table">
+        <tr><th>Запис</th><th>Що відбирає</th><th>Приклад</th></tr>
+        <tr><td><code>тип</code></td><td>усі елементи типу</td><td><code>report</code></td></tr>
+        <tr><td><code>#id</code></td><td>елемент з ідентифікатором</td><td><code>#r-117</code></td></tr>
+        <tr><td><code>.клас</code></td><td>елементи з класом</td><td><code>.sigint</code></td></tr>
+        <tr><td><code>тип.клас</code></td><td>тип і клас одночасно</td><td><code>target.artillery</code></td></tr>
+        <tr><td><code>A B</code></td><td>B всередині A (на будь-якій глибині)</td><td><code>#north target</code></td></tr>
+        <tr><td><code>A &gt; B</code></td><td>B безпосередньо в A</td><td><code>#east &gt; report</code></td></tr>
+        <tr><td><code>A + B</code></td><td>B одразу після A</td><td><code>.sigint + .imint</code></td></tr>
+        <tr><td><code>A ~ B</code></td><td>усі B після A</td><td><code>fire ~ report</code></td></tr>
+        <tr><td><code>A, B</code></td><td>A або B</td><td><code>.ad, .ew</code></td></tr>
+        <tr><td><code>*</code></td><td>будь-який елемент</td><td><code>#south *</code></td></tr>
+        <tr><td><code>[attr]</code></td><td>має атрибут</td><td><code>[verified]</code></td></tr>
+        <tr><td><code>[attr="v"]</code></td><td>атрибут дорівнює значенню</td><td><code>[rel="A"]</code></td></tr>
+        <tr><td><code>:not(X)</code></td><td>не відповідає X</td><td><code>report:not([cred="5"])</code></td></tr>
+        <tr><td><code>:first-child</code></td><td>перший у батьківському</td><td><code>report:first-child</code></td></tr>
+        <tr><td><code>:last-child</code></td><td>останній у батьківському</td><td><code>report:last-child</code></td></tr>
+        <tr><td><code>:only-child</code></td><td>єдиний у батьківському</td><td><code>report:only-child</code></td></tr>
+        <tr><td><code>:empty</code></td><td>без вмісту</td><td><code>target:empty</code></td></tr>
+      </table>
+      <h4>Словник розмітки</h4>
+      <table class="help-table">
+        <tr><td><code>sector</code></td><td>сектор (смуга) — <code>id</code>: north, south, east, west, center</td></tr>
+        <tr><td><code>target</code></td><td>ціль — клас: tank, infantry, artillery, mlrs, ew, ad, cp, logistics, radar</td></tr>
+        <tr><td><code>report</code></td><td>донесення — клас: humint, sigint, imint, osint</td></tr>
+        <tr><td><code>dossier</code></td><td>тека зі справою</td></tr>
+        <tr><td><code>fire</code></td><td>факт вогневого ураження</td></tr>
+        <tr><td><code>rel</code> / <code>cred</code></td><td>надійність джерела (A–F) / вірогідність інформації (1–6)</td></tr>
+        <tr><td><code>prio</code></td><td>терміновість: flash, immediate, priority, routine</td></tr>
+        <tr><td><code>verified</code></td><td>позначка «перевірено»</td></tr>
+      </table>
+    </section>
+
+    <section class="tab-pane" data-pane="terms">
+      <dl class="glossary">
+        <dt>ІАЗ</dt><dd>Інформаційно-аналітичне забезпечення — збір, обробка, аналіз, узагальнення і своєчасне доведення інформації до командира для ухвалення рішень.</dd>
+        <dt>Цикл ІАЗ</dt><dd>Планування збору → збір → обробка → аналіз і узагальнення → доведення → нові потреби.</dd>
+        <dt>PIR</dt><dd>Пріоритетні інформаційні потреби командира — питання, відповідь на які критично потрібна для рішення.</dd>
+        <dt>HUMINT</dt><dd>Агентурна розвідка: людські джерела, полонені, місцеве населення.</dd>
+        <dt>SIGINT</dt><dd>Радіоелектронна розвідка: перехоплення зв'язку, пеленгування.</dd>
+        <dt>IMINT</dt><dd>Видова розвідка: аеро- й космічні знімки, відео з БпЛА.</dd>
+        <dt>OSINT</dt><dd>Розвідка з відкритих джерел: соцмережі, ЗМІ, публічні дані.</dd>
+        <dt>Зведення (fusion)</dt><dd>Об'єднання розрізнених донесень навколо конкретного об'єкта.</dd>
+        <dt>Cross-cueing</dt><dd>Перехресне наведення: один засіб розвідки виявляє ознаку, інший її перевіряє.</dd>
+        <dt>Принцип підтвердження</dt><dd>Ціль вважається встановленою, коли її підтверджують щонайменше два незалежні джерела.</dd>
+        <dt>BDA</dt><dd>Оцінка результатів ураження: знищено, пошкоджено чи ціль уціліла.</dd>
+        <dt>ІПСО</dt><dd>Інформаційно-психологічна операція — зокрема вкидання дезінформації.</dd>
+        <dt>SALUTE</dt><dd>Схема донесення: чисельність, дії, місце, належність, час, озброєння.</dd>
+        <dt>FLASH / IMMEDIATE / PRIORITY / ROUTINE</dt><dd>Категорії терміновості: блискавична, негайна, термінова, звичайна.</dd>
+      </dl>
+    </section>
+
+    <section class="tab-pane" data-pane="admiralty">
+      <p>Адміралтейська система (STANAG 2511) оцінює дані двома символами: <b>літера</b> — надійність джерела, <b>цифра</b> — вірогідність інформації. Вони оцінюються незалежно.</p>
+      <div class="adm-grid">
+        <table class="help-table adm">
+          <tr><th colspan="2">Надійність джерела</th></tr>
+          <tr><td class="g1">A</td><td>цілком надійне</td></tr>
+          <tr><td class="g2">B</td><td>зазвичай надійне</td></tr>
+          <tr><td class="g3">C</td><td>досить надійне</td></tr>
+          <tr><td class="g4">D</td><td>не завжди надійне</td></tr>
+          <tr><td class="g5">E</td><td>ненадійне</td></tr>
+          <tr><td class="g6">F</td><td>неможливо оцінити</td></tr>
+        </table>
+        <table class="help-table adm">
+          <tr><th colspan="2">Вірогідність інформації</th></tr>
+          <tr><td class="g1">1</td><td>підтверджена іншими джерелами</td></tr>
+          <tr><td class="g2">2</td><td>ймовірно правдива</td></tr>
+          <tr><td class="g3">3</td><td>можливо правдива</td></tr>
+          <tr><td class="g4">4</td><td>сумнівна</td></tr>
+          <tr><td class="g5">5</td><td>неймовірна</td></tr>
+          <tr><td class="g6">6</td><td>неможливо оцінити</td></tr>
+        </table>
+      </div>
+      <p class="muted">Приклади: <b>B2</b> — найпоширеніша робоча оцінка; <b>A1</b> — рідкісна найвища; <b>F6</b> — «не знаємо», а не «неправда».</p>
+    </section>
+
+    <section class="tab-pane" data-pane="legend">
+      <div id="legendFull" class="legend-full"></div>
+    </section>
   </div>
 </div>
 
