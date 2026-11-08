@@ -1,0 +1,203 @@
+/* Композиція: пласкі блоки, радіус 0–2 px, сітка кратна 8 px (§9.3 ТЗ) */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.45; }
+a { color: var(--focus); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Шапка */
+.banner { background: var(--banner-bg); color: var(--text); text-align: center; font-size: 13px; padding: 4px 16px;
+  border-bottom: 1px solid var(--border); }
+.banner b { letter-spacing: .02em; }
+header.top { background: var(--header-bg); color: var(--header-fg); padding: 12px 24px; display: flex; gap: 16px;
+  align-items: center; flex-wrap: wrap; }
+header.top h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: .01em; line-height: 1.1; }
+header.top .sub { font-size: 12px; opacity: .85; }
+.period-plaque { background: var(--uaf-gold); color: #2B2619; padding: 4px 12px; font-weight: 700; border-radius: 2px;
+  white-space: nowrap; }
+.mark-training { border: 1px solid currentColor; padding: 2px 8px; font-size: 12px; border-radius: 2px; }
+.spacer { flex: 1; }
+button, select, input { font: inherit; color: inherit; }
+.btn { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 2px;
+  cursor: pointer; min-height: 32px; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--uaf-gold); border-color: var(--uaf-gold); color: #2B2619; font-weight: 700; }
+header.top .btn { color: var(--header-fg); border-color: rgba(255,255,255,.4); }
+header.top .btn:hover { background: rgba(255,255,255,.1); }
+.btn.sm { min-height: 24px; padding: 0 8px; font-size: 12px; }
+
+/* Вкладки */
+nav.tabs { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px;
+  overflow-x: auto; }
+nav.tabs a { padding: 12px 16px; text-decoration: none; color: var(--text-muted); border-bottom: 3px solid transparent;
+  white-space: nowrap; }
+nav.tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--uaf-gold); font-weight: 700; }
+
+/* Фільтри — один рядок над графіками */
+.filters { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; padding: 16px 24px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border); }
+.filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--text-muted); gap: 4px; }
+.filters input, .filters select { background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+  padding: 4px 8px; min-height: 32px; color: var(--text); }
+.filters select[multiple] { min-height: 32px; height: 32px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 2px 8px; font-size: 12px; }
+.chip button { border: 0; background: none; cursor: pointer; padding: 0 0 0 4px; color: var(--text-muted); }
+
+main { padding: 24px; max-width: 1600px; margin: 0 auto; }
+section.page { display: none; }
+section.page.active { display: block; }
+.page-title { font-size: 28px; font-weight: 900; margin: 0 0 4px; }
+.page-lead { color: var(--text-muted); margin: 0 0 24px; max-width: 900px; }
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--uaf-gold);
+  padding: 16px; border-radius: 2px; }
+.kpi .kpi-label { font-size: 13px; color: var(--text-muted); }
+.kpi .kpi-value { font-size: 40px; font-weight: 900; line-height: 1.1; margin: 4px 0; }
+.kpi .kpi-value small { font-size: 16px; font-weight: 400; margin-left: 4px; }
+.kpi .kpi-value.na { font-size: 22px; line-height: 1.6; color: var(--text-muted); }
+.kpi .kpi-delta { font-size: 12px; color: var(--text-muted); }
+.kpi .kpi-delta .good { color: var(--c-sea); } .kpi .kpi-delta .bad { color: var(--c-red); }
+.kpi[data-module="air"] { border-left-color: var(--c-gold); }
+.kpi[data-module="artillery"] { border-left-color: var(--c-step); }
+.kpi[data-module="losses"] { border-left-color: var(--c-marun); }
+.kpi[data-module="docs"] { border-left-color: var(--c-sea); }
+
+/* Сітка графіків */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid .wide { grid-column: 1 / -1; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 16px; min-width: 0; }
+.card header { display: flex; gap: 8px; align-items: start; }
+.card header .titles { flex: 1; min-width: 0; }
+.chart-title { font-size: 17px; font-weight: 400; margin: 0; }
+.chart-sub { font-size: 12px; color: var(--text-muted); margin: 2px 0 8px; }
+.card .tools { display: flex; gap: 4px; flex-wrap: wrap; }
+.chart-box { position: relative; height: 300px; }
+.chart-box.short { height: 160px; }
+.chart-box.tall { height: 420px; }
+.chart-source { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.chart-table { display: none; max-height: 320px; overflow: auto; margin-top: 8px; }
+.card.show-table .chart-table { display: block; }
+.empty { color: var(--text-muted); padding: 48px 0; text-align: center; }
+
+/* Таблиці за п. 2.3 Порядку */
+table.t { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.t caption { text-align: left; padding: 0 0 8px; }
+table.t caption .num { display: block; text-align: right; font-size: 12px; color: var(--text-muted); }
+table.t th, table.t td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; }
+table.t th { background: var(--surface-2); font-weight: 700; position: sticky; top: 0; }
+table.t td.n { text-align: right; font-variant-numeric: tabular-nums; }
+table.t th button { background: none; border: 0; padding: 0; cursor: pointer; font-weight: 700; text-align: left; }
+tr.overdue td { background: color-mix(in srgb, var(--c-red) 10%, transparent); }
+
+/* Теплокарта B3 */
+.heat { display: grid; grid-template-columns: 32px repeat(24, minmax(0, 1fr)); gap: 2px; font-size: 11px; }
+.heat .c { aspect-ratio: 1.6; border-radius: 1px; }
+.heat .lbl { color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+.heat-legend { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.heat-legend span.sw { width: 24px; height: 10px; display: inline-block; }
+
+/* Карта */
+.map-wrap { position: relative; }
+#map, #map-full { height: 560px; background: var(--surface-2); border: 1px solid var(--border); }
+#map-full { height: calc(100vh - 260px); min-height: 480px; }
+.map-panel { position: absolute; z-index: 500; top: 8px; right: 8px; background: rgba(77,70,52,.6); color: #fff;
+  padding: 8px 12px; border-radius: 2px; font-size: 12px; max-width: 260px; backdrop-filter: blur(2px); }
+.map-panel fieldset { border: 0; margin: 0; padding: 0; }
+.map-panel legend { font-weight: 700; padding: 0; margin-bottom: 4px; }
+.map-panel label { display: flex; gap: 6px; align-items: center; }
+.map-panel select { background: #fff; color: #2B2619; border: 0; border-radius: 2px; width: 100%; margin: 4px 0; }
+.map-panel .zoomnote { opacity: .85; margin-top: 6px; }
+.map-panel .basenote:empty { display: none; }
+.map-panel .basenote { color: #FFD966; margin-top: 4px; }
+/* Підкладка «Схема» (без інтернету): море — фон контейнера, суходіл/річки/кордони — canvas, міста — підписи */
+#map.base-schema, #map-full.base-schema { background: #BFD6E6; }
+.city { position: absolute; white-space: nowrap; pointer-events: none; }
+.city i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%;
+  background: #4A4A4A; border: 1px solid #fff; box-sizing: border-box; }
+.city i.cap { left: -4px; top: -4px; width: 8px; height: 8px; background: #000; }
+.city span { position: absolute; left: 6px; top: -8px; font: 600 11px "Segoe UI", Arial, sans-serif; line-height: 16px; color: #333;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff; }
+.map-legend { margin-top: 16px; }
+.map-legend td.sym-cell { width: 72px; text-align: center; }
+.map-legend td.sym-cell svg { max-width: 64px; max-height: 40px; }
+
+/* Знаки: масштаб від зуму (--s), видимість за ешелоном (класи zl-N на контейнері) */
+.sym-wrap { background: none; border: 0; }
+.sym { position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  transform: scale(var(--s, 1)) translate(calc(-1px * var(--ax)), calc(-1px * var(--ay)));
+  transition: transform .25s ease; cursor: pointer; line-height: 0; }
+.sym svg, .sym img { display: block; }
+.sym.full { display: none; }
+.labels-on .sym.full { display: block; }
+.labels-on .sym.bare { display: none; }
+.zl-55 .mz-55, .zl-65 .mz-65, .zl-70 .mz-70, .zl-80 .mz-80, .zl-90 .mz-90, .zl-95 .mz-95 { display: none !important; }
+/* Потоки документів ОКП: стрілка напрямку (до старшого пункту управління) */
+.flow-arrow { background: none; border: 0; }
+.flow-arrow i { position: absolute; left: -6px; top: -5px; width: 0; height: 0; border-left: 12px solid currentColor;
+  border-top: 5px solid transparent; border-bottom: 5px solid transparent; transform-origin: 6px 5px; }
+.post-badge { background: none; border: 0; }
+.post-badge b { position: absolute; transform: translate(-50%, 14px); white-space: nowrap; font-size: 11px; padding: 1px 4px;
+  background: #fff; color: #2B2619; border: 1px solid #035C6B; border-radius: 2px; }
+.imp-tag { font: 700 10px var(--font-ui); }
+.cluster.imp { background: rgba(212,0,0,.88); color: #fff; }
+.ds-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+.sym.dim { opacity: .35; }
+.leaflet-container { font-family: var(--font-body); }
+.leaflet-popup-content { font-size: 13px; margin: 12px; }
+.pop dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; }
+.pop dt { color: #5C5444; } .pop dd { margin: 0; }
+.pop .syn { margin-top: 6px; font-size: 11px; color: #707276; }
+.pop h4 { margin: 0 0 6px; font-size: 14px; }
+.cluster { background: rgba(77,70,52,.85); color: #fff; border: 2px solid #fff; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+.cluster.art { background: rgba(255,128,128,.92); color: #2B2619; }
+.cluster.air { background: rgba(243,146,0,.92); color: #2B2619; }
+
+/* Журнал */
+.journal-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.journal-bar input { background: var(--surface); border: 1px solid var(--border); padding: 4px 8px; min-height: 32px;
+  border-radius: 2px; min-width: 240px; }
+.pager { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 2px; }
+.seg button { border: 0; background: var(--surface); padding: 4px 12px; cursor: pointer; min-height: 32px; }
+.seg button[aria-pressed="true"] { background: var(--uaf-mundyr); color: #fff; }
+
+.about { max-width: 960px; }
+.about h3 { margin-top: 24px; }
+footer.foot { padding: 16px 24px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); }
+
+/* Режим роботи і вкладка «Внесення даних» */
+.mode-badge { font-size: 12px; padding: 2px 8px; border: 1px solid rgba(255,255,255,.45); border-radius: 2px; color: var(--header-fg); }
+[data-mode="offline"] .mode-badge { background: var(--uaf-gold); color: #2B2619; border-color: var(--uaf-gold); }
+.entry > .seg { margin: 12px 0; flex-wrap: wrap; }
+.entry-mode { border-left: 4px solid var(--c-sea); }
+.entry-mode.offline { border-left-color: var(--uaf-gold); }
+.entry-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; align-items: start; }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; }
+.fcell { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.fcell.wide { grid-column: 1 / -1; }
+.fcell input, .fcell select { font: inherit; padding: 4px 6px; border: 1px solid var(--border); border-radius: 2px; background: var(--surface); color: var(--text); min-height: 30px; }
+.fcell .req { color: var(--c-red); }
+.ferr { font-size: 12px; color: var(--c-red); min-height: 0; }
+.chk { display: flex; gap: 6px; align-items: center; }
+.row-btns[hidden] { display: none; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px; }
+.btn.file { cursor: pointer; display: inline-flex; align-items: center; }
+.hint { font-size: 12px; color: var(--text-muted); margin: 4px 0; }
+.ok { color: var(--c-sea); font-weight: 700; }
+.err { color: var(--c-red); }
+tr.bad td { background: rgba(229,36,33,.08); }
+#e-map { height: 320px; margin-top: 6px; border: 1px solid var(--border); }
+@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } .entry-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) {
+  header.top, nav.tabs, .filters, main { padding-left: 16px; padding-right: 16px; }
+  header.top h1 { font-size: 18px; }
+  .kpi .kpi-value { font-size: 32px; }
+  #map { height: 420px; }
+  .map-panel { position: static; max-width: none; background: var(--header-bg); }
+  .heat { font-size: 9px; }
+}

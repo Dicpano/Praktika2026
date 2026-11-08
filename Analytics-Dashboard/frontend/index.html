@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Аналітика обстановки</title>
+  <meta name="description" content="Навчальний аналітичний дашборд на синтетичних даних">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="vendor/markercluster/MarkerCluster.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="banner" role="note"><b>Синтетичні дані. Навчальний проєкт.</b> Події, втрати, документи і свої підрозділи — вигадані. Лінія зіткнення і противник — відкриті дані DeepStateMap.</div>
+  <header class="top">
+    <div>
+      <h1>Аналітика оперативної обстановки</h1>
+      <div class="sub">A. Повітряні удари · B. Артилерія · C. Особовий склад · D. Документообіг ОКП · <span id="asof"></span></div>
+    </div>
+    <span class="period-plaque" aria-live="polite"></span>
+    <span class="mark-training">По навчанню</span>
+    <span class="mode-badge" id="mode"></span>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="print">Довідка (PDF/друк)</button>
+    <button type="button" class="btn" id="theme">Тема: авто</button>
+  </header>
+
+  <nav class="tabs" aria-label="Розділи">
+    <a href="#overview">Огляд</a><a href="#air">Повітряна обстановка</a><a href="#artillery">Артилерія</a>
+    <a href="#losses">Особовий склад</a><a href="#docs">Документообіг ОКП</a><a href="#map">Карта</a>
+    <a href="#journal">Журнал</a><a href="#entry">Внесення даних</a><a href="#about">Про проєкт</a>
+  </nav>
+
+  <form class="filters" aria-label="Глобальні фільтри" onsubmit="return false">
+    <label>Період<select id="f-preset"><option value="">— швидкий вибір —</option><option value="7">останні 7 діб</option>
+      <option value="30">останні 30 діб</option><option value="90">останні 90 діб</option><option value="366">весь період</option></select></label>
+    <label>З<input type="date" id="f-from" required></label>
+    <label>По<input type="date" id="f-to" required></label>
+    <label>Область<select id="f-oblast"></select></label>
+    <label>Підрозділ<select id="f-unit"></select></label>
+    <div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Застосовано</div><div class="chips" id="f-chips"></div></div>
+    <button type="button" class="btn" id="f-reset">Скинути</button>
+  </form>
+
+  <main>
+    <section class="page" id="p-overview" aria-labelledby="h-overview">
+      <h2 class="page-title" id="h-overview">Огляд</h2>
+      <p class="page-lead">Зведена картина за чотирма модулями. Клік по області на карті вибирає лише її (повторний клік — скинути); Ctrl + клік — додати ще одну область.</p>
+      <div class="kpis"></div>
+      <div class="map-wrap"><div id="map" role="region" aria-label="Карта України з умовними знаками"></div></div>
+      <div id="legend-overview" class="map-legend"></div>
+      <div class="grid" style="margin-top:16px"></div>
+    </section>
+    <section class="page" id="p-air"><h2 class="page-title">Повітряна обстановка</h2>
+      <p class="page-lead">Засоби повітряного нападу противника, результати протидії та повітряні тривоги.</p>
+      <div class="kpis"></div><div class="grid"></div></section>
+    <section class="page" id="p-artillery"><h2 class="page-title">Артилерія</h2>
+      <p class="page-lead">Вогонь противника (виявлені вогневі позиції) і вогонь своїх засобів по цілях у прифронтовій смузі; контрбатарейна боротьба; запас і витрата боєприпасів; стан артилерійського озброєння. Нормативи (мінімальний запас 5 діб вогню) — умовні.</p>
+      <div class="kpis"></div><div class="grid"></div></section>
+    <section class="page" id="p-losses"><h2 class="page-title">Особовий склад: втрати і укомплектованість</h2>
+      <p class="page-lead">Лише агреговані показники за умовними підрозділами і добами, без персональних даних. У зрізі «підрозділ × доба» значення 1–4 показано як «&lt;5». Укомплектованість — % наявних від штатної чисельності; норматив 85 % умовний.</p>
+      <div class="kpis"></div><div class="grid"></div></section>
+    <section class="page" id="p-docs"><h2 class="page-title">Документообіг ОКП</h2>
+      <p class="page-lead">Вхідні документи на основний командний пункт. Нормативи часу обробки — умовні (до підтвердження замовником).</p>
+      <div class="kpis"></div><div class="grid"></div></section>
+    <section class="page" id="p-map"><h2 class="page-title">Карта</h2>
+      <p class="page-lead">Наближайте карту: знаки збільшуються й з'являються дрібніші ланки — бригади (масштаб 6,5), полки (7), батальйони (8), підписи (8,5), роти (9,5). При віддаленні знаки зменшуються, а на масштабі 5 зникають. Удари БпЛА, ракет і КАБ показано лише місцями уражень. Лінія зіткнення, зони та противник — за відкритими даними DeepStateMap.</p>
+      <div class="map-wrap"><div id="map-full" role="region" aria-label="Повноекранна карта"></div></div>
+      <div id="legend-full" class="map-legend"></div></section>
+    <section class="page" id="p-journal"><h2 class="page-title">Журнал</h2>
+      <p class="page-lead">Записи модулів з пошуком, сортуванням і експортом CSV (UTF-8, «;»).</p>
+      <div class="journal"></div></section>
+    <section class="page" id="p-entry"><h2 class="page-title">Внесення даних</h2>
+      <p class="page-lead">Новий запис — через форму, багато записів — імпортом CSV або Excel. Внесені записи позначаються в журналі як «внесено вручну» або «імпорт» і одразу враховуються в KPI, графіках і на карті. Синтетичні дані не змінюються.</p>
+      <div class="entry"></div></section>
+    <section class="page about" id="p-about"><h2 class="page-title">Про проєкт</h2>
+      <p><b>Синтетичні дані. Навчальний проєкт.</b> Записи модулів згенеровано скриптом <code>db/generate_seed.py</code>. Вони правдоподібні за структурою,
+        але не відображають реальних подій, втрат, документів чи координат. Свої підрозділи — умовні. Дашборд не є і не замінює офіційних систем.</p>
+      <h3>Архітектура</h3>
+      <p>PostgreSQL 16 → Python (FastAPI) → вебдашборд (Leaflet, milsymbol, Chart.js). Два режими:</p>
+      <ul><li><b>Сервер:</b> <code>docker compose up -d</code>, далі <code>http://localhost:8000</code>. Документація API: <a href="/docs">/docs</a>.</li>
+        <li><b>Офлайн:</b> відкрити <code>frontend/index.html</code> на будь-якому комп'ютері. Дані — знімок бази <code>data/dataset.js</code>; внесені записи зберігаються в браузері й вивантажуються як .sql / .json.</li></ul>
+      <p>SQL-файли бази: <code>db/init/01_schema.sql</code> (схема), <code>02_views.sql</code> (представлення, ролі), <code>03_seed.sql</code> (дані), <code>db/dashboard_dump.sql</code> (повний дамп).</p>
+      <h3>Нормативна база оформлення</h3>
+      <ul>
+        <li>Керівництво з використання графічного стилю у візуальній комунікації ЗСУ (брендбук), ред. 20.02.2024 — кольори, шрифт Volja.</li>
+        <li>ВКДП 5(3)-00(01).02 «Тимчасовий порядок оформлення оперативних (бойових) документів», наказ № 140 від 11.09.2020 — умовні знаки, кольори заливки (табл. 6), позначки ураження (п. 2.2.12), формат часу, таблиці (п. 2.3).</li>
+        <li>APP-6 (NATO) / MIL-STD-2525C — лише для знаків, яких немає в Порядку; рендер milsymbol.</li>
+      </ul>
+      <h3>Карта і масштаб</h3>
+      <p>Розмір знака залежить від масштабу (п. 5.4.3 Порядку). ОСУВ і ОТУ показуються з масштабу 5,5 (уся Україна), бригади — з 6,5, полки — з 7, батальйони — з 8, роти — з 9,5; підписи — з 8,5.
+        Місця уражень і обстріли об'єднуються в кластери до масштабу 10 і 11; при масштабі 5 усі знаки приховано.
+        Місце ураження — знак «Вибух, підрив» (п. 6.12) з підписом засобу БпЛА / КрР / БалР / КАБ (п. 2.2.16). Лінія зіткнення — за п. 6.2.1.
+        Потоки документів ОКП показуються по ланці управління («підлеглий → старший») і деталізуються при наближенні.</p>
+      <h3>Джерела даних карти</h3>
+      <p>Підкладка © OpenStreetMap contributors (потрібен інтернет); без інтернету — векторна схема Natural Earth (суспільне надбання), перемикач «Підкладка» на панелі карти. Межі областей: geoBoundaries (CC BY 4.0), спрощено.
+        Лінія зіткнення, окупована і «сіра» зони, положення підрозділів противника — відкриті дані <a href="https://deepstatemap.live" target="_blank" rel="noopener">DeepStateMap</a> (станом на дату в легенді карти); вони не є офіційними даними.
+        Свої підрозділи, удари, обстріли, втрати й документи — синтетичні та умовні.</p>
+    </section>
+  </main>
+  <footer class="foot">Синтетичні дані · По навчанню · Час київський, формат «ГГ.ХХ ДД.ММ.РРРР» · Офіційні логотипи не використовуються.</footer>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/markercluster/leaflet.markercluster.js"></script>
+  <script src="vendor/milsymbol/milsymbol.js"></script>
+  <script src="vendor/chartjs/chart.umd.js"></script>
+  <script src="data/geo.js"></script>
+  <script src="data/basemap.js"></script>
+  <!-- Зібрано з js/*.js командою python tools/build.py (працює і з file://) -->
+  <script src="js/bundle.js"></script>
+</body>
+</html>

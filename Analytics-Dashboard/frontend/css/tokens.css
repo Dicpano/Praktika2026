@@ -1,0 +1,59 @@
+/* Токени кольорів (брендбук ЗСУ, §9.1 ТЗ). Темна тема має власні, підняті за світлістю кроки. */
+:root {
+  --uaf-mundyr: #4D4634;
+  --uaf-gold: #F39200;
+  --paper: #F4F1E8;
+  --white: #FFFFFF;
+
+  --bg: var(--paper);
+  --surface: #FFFFFF;
+  --surface-2: #FAF8F2;
+  --text: #2B2619;
+  --text-muted: #5C5444;
+  --border: #D9D3C3;
+  --grid: #E8E3D6;
+  --header-bg: var(--uaf-mundyr);
+  --header-fg: #FFFFFF;
+  --accent: var(--uaf-gold);
+  --focus: #035C6B;
+  --tooltip-bg: #2B2619;
+  --tooltip-fg: #FFFFFF;
+  --banner-bg: #FFF3DC;
+
+  /* Ряди даних: один зміст = один колір у всіх графіках */
+  --c-gold: #F39200;      /* «Золото»: БпЛА, поранені, ЕФІР */
+  --c-storm: #293757;     /* «Грозове небо» */
+  --c-marun: #671318;     /* «Марун» */
+  --c-step: #6A653A;      /* «Степ» */
+  --c-steel: #707276;     /* «Сталь» */
+  --c-sea: #035C6B;       /* «Морська хвиля» */
+  --c-olive: #444A38;     /* «Олива» */
+  --c-red: #E52421;       /* «Світло-червоний»: загроза, прострочення */
+
+  /* Хороплет: від паперу до «Марун», 5 кроків */
+  --seq-1: #F4F1E8; --seq-2: #E7C9B4; --seq-3: #CF9483; --seq-4: #A2524E; --seq-5: #671318;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1A1813; --surface: #24211A; --surface-2: #2C2920;
+    --text: #EEE9DC; --text-muted: #B9B09B; --border: #3E392D; --grid: #35312A;
+    --header-bg: #2E2A1F; --header-fg: #F4F1E8; --focus: #4FB3C4;
+    --tooltip-bg: #F4F1E8; --tooltip-fg: #1A1813; --banner-bg: #3A2F17;
+    --c-gold: #F7A43A; --c-storm: #8EA2D4; --c-marun: #D0656B; --c-step: #B8B07A;
+    --c-steel: #A9ABB0; --c-sea: #3FB0C2; --c-olive: #9AA383; --c-red: #FF5E55;
+    --seq-1: #2C2920; --seq-2: #5A3A30; --seq-3: #8A4A42; --seq-4: #B95F58; --seq-5: #E58A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1A1813; --surface: #24211A; --surface-2: #2C2920;
+  --text: #EEE9DC; --text-muted: #B9B09B; --border: #3E392D; --grid: #35312A;
+  --header-bg: #2E2A1F; --header-fg: #F4F1E8; --focus: #4FB3C4;
+  --tooltip-bg: #F4F1E8; --tooltip-fg: #1A1813; --banner-bg: #3A2F17;
+  --c-gold: #F7A43A; --c-storm: #8EA2D4; --c-marun: #D0656B; --c-step: #B8B07A;
+  --c-steel: #A9ABB0; --c-sea: #3FB0C2; --c-olive: #9AA383; --c-red: #FF5E55;
+  --seq-1: #2C2920; --seq-2: #5A3A30; --seq-3: #8A4A42; --seq-4: #B95F58; --seq-5: #E58A80;
+  color-scheme: dark;
+}

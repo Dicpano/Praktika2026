@@ -1,0 +1,10 @@
+# Версії зафіксовано (перевірено на Python 3.12 у Docker і 3.14 локально)
+fastapi==0.162.0
+uvicorn==0.54.0
+psycopg[binary]==3.3.8
+psycopg-pool==3.3.3
+pydantic==2.14.3
+python-dotenv==1.2.4
+# тести
+pytest==9.2.0
+httpx==0.28.1

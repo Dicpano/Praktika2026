@@ -1,0 +1,32 @@
+"""Довідник областей: ISO 3166-2:UA, назви, ознаки. Спільний для генератора і підготовки GeoJSON."""
+
+# iso: (name_ua, name_en, is_frontline, is_occupied)
+OBLASTS = {
+    "UA-05": ("Вінницька", "Vinnytsia", False, False),
+    "UA-07": ("Волинська", "Volyn", False, False),
+    "UA-09": ("Луганська", "Luhansk", True, True),
+    "UA-12": ("Дніпропетровська", "Dnipropetrovsk", True, False),
+    "UA-14": ("Донецька", "Donetsk", True, False),
+    "UA-18": ("Житомирська", "Zhytomyr", False, False),
+    "UA-21": ("Закарпатська", "Zakarpattia", False, False),
+    "UA-23": ("Запорізька", "Zaporizhzhia", True, False),
+    "UA-26": ("Івано-Франківська", "Ivano-Frankivsk", False, False),
+    "UA-30": ("м. Київ", "Kyiv City", False, False),
+    "UA-32": ("Київська", "Kyiv", False, False),
+    "UA-35": ("Кіровоградська", "Kirovohrad", False, False),
+    "UA-40": ("м. Севастополь", "Sevastopol", False, True),
+    "UA-43": ("АР Крим", "Crimea", False, True),
+    "UA-46": ("Львівська", "Lviv", False, False),
+    "UA-48": ("Миколаївська", "Mykolaiv", True, False),
+    "UA-51": ("Одеська", "Odesa", False, False),
+    "UA-53": ("Полтавська", "Poltava", False, False),
+    "UA-56": ("Рівненська", "Rivne", False, False),
+    "UA-59": ("Сумська", "Sumy", True, False),
+    "UA-61": ("Тернопільська", "Ternopil", False, False),
+    "UA-63": ("Харківська", "Kharkiv", True, False),
+    "UA-65": ("Херсонська", "Kherson", True, False),
+    "UA-68": ("Хмельницька", "Khmelnytskyi", False, False),
+    "UA-71": ("Черкаська", "Cherkasy", False, False),
+    "UA-74": ("Чернігівська", "Chernihiv", True, False),
+    "UA-77": ("Чернівецька", "Chernivtsi", False, False),
+}
