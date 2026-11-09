@@ -1,4 +1,6 @@
-# Аналітичний дашборд (синтетичні дані). Запуск: docker compose up -d → http://localhost:8000
+# Аналітичний дашборд (синтетичні дані).
+# Усе разом:      docker compose up -d        → http://localhost:8000
+# Лише база:      docker compose up -d db     → далі в терміналі VS Code: uvicorn backend.app.main:app --reload
 services:
   db:
     image: postgres:16-alpine
@@ -9,7 +11,7 @@ services:
       TZ: Europe/Kyiv
       PGTZ: Europe/Kyiv
     volumes:
-      - ./db/init:/docker-entrypoint-initdb.d:ro   # 01_schema, 02_views, 03_seed — лише при першому старті
+      - ./backend/database/init:/docker-entrypoint-initdb.d:ro   # 01_schema, 02_views, 03_seed — лише при першому старті
       - pgdata:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"      # доступ з цього ПК (pgAdmin, DBeaver); назовні не відкрито
@@ -32,6 +34,7 @@ services:
       DB_RO_PASSWORD: ${DB_RO_PASSWORD:-dashboard_ro_local}
       DB_RW_USER: dashboard_rw                     # лише INSERT/DELETE — для вкладки «Внесення даних»
       DB_RW_PASSWORD: ${DB_RW_PASSWORD:-dashboard_rw_local}
+      ENTRY_TOKEN: ${ENTRY_TOKEN:-}                # код доступу для внесення даних (порожньо — без коду)
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:

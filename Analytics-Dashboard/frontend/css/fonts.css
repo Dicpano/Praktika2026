@@ -1,7 +1,7 @@
 /*
- * Шрифти дашборду (зібрано tools/build.py: файли з frontend/fonts/ вбудовано як data:-URI,
+ * Шрифти дашборду (зібрано build_frontend.py: файли з frontend/fonts/ вбудовано як data:-URI,
  * щоб шрифт працював і тоді, коли сторінку відкрито як файл).
- * Volja — фірмовий шрифт ЗСУ (за підтвердженням замовника це і є «UAF Sans»), увесь інтерфейс.
+ * Volja — фірмовий шрифт ЗСУ («UAF Sans»): заголовки, вкладки, кнопки, KPI, графіки; довгий текст — системним шрифтом.
  * Обмеження файлів: у Regular немає гліфів % + ʼ; у Black ще й - ( ) / « » №.
  * Тому стек завжди закінчується системним шрифтом: браузер підставляє відсутні символи з нього.
  */
@@ -23,11 +23,16 @@
 }
 
 :root {
+  /* Volja — фірмовий шрифт для заголовків, вкладок, кнопок, KPI, підписів знаків і графіків.
+     Volja має лише великі літери, тому довгий текст (описи, легенда, таблиці, форми, спливні вікна)
+     набирається системним шрифтом — інакше абзаци з великих літер важко читати. */
   --font-ui: "Volja", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --font-text: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-ui);
-  --font-body: var(--font-ui);
+  --font-body: var(--font-text);
   --font-print: "Times New Roman", Times, serif;
 }
 
 body { font-family: var(--font-body); }
-h1, h2, h3, .page-title, .kpi-value, .chart-title { font-family: var(--font-display); }
+h1, h2, h3, .page-title, .kpi-value, .kpi-label, .chart-title, header.top, nav.tabs, .btn, .filters label,
+table.t th, .map-panel legend, .seg button, .imp-tag { font-family: var(--font-display); }

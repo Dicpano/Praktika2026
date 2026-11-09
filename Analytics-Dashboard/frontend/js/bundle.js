@@ -1,9 +1,9 @@
-/* Зібрано tools/build.py з модулів frontend/js/*.js. Не редагувати вручну. */
+/* Зібрано backend/scripts/build_frontend.py з модулів frontend/src/*.js. Не редагувати вручну. */
 (function () {
 'use strict';
 const __M = {};
-// ---- js/state.js ----
-__M["js/state.js"] = (function () {
+// ---- state.js ----
+__M["state.js"] = (function () {
 // Глобальний стан фільтрів. Дублюється в URL (?date_from=…&oblast=…#air), щоб посиланням можна було поділитися.
 
 const listeners = new Set();
@@ -68,8 +68,8 @@ function filterCaption() {
 
 return { state, initFromUrl, query, setFilters, toggleOblast, onChange, label, oblastName, filterCaption };
 })();
-// ---- js/entries-store.js ----
-__M["js/entries-store.js"] = (function () {
+// ---- entries-store.js ----
+__M["entries-store.js"] = (function () {
 // Записи, внесені без сервера (офлайн-режим): зберігаються в localStorage цього браузера.
 // Перевірки повторюють backend/app/routers/entry.py. Записи можна вивантажити:
 //   • .sql  — INSERT-и для PostgreSQL (psql -f entries.sql), з пошуком id за кодами довідників;
@@ -290,7 +290,8 @@ function validate(kind, raw, db, findOblast, n = 1) {
     if (db.d.units.some((u) => u.short_name.toLowerCase() === v.short_name.toLowerCase())) throw new RowError('short_name', 'підрозділ з такою назвою вже існує');
     const ECH = { company: 'E', battalion: 'F', regiment: 'G', brigade: 'H', corps: 'J', command: 'K' };
     const FN = { mech: 'UCIZ--', tank: 'UCA---', artillery: 'UCF---', air_defense: 'UCD---', airborne: 'UCIA--', support: 'USS---',
-      hq: 'UH----', recon: 'UCR---', marine: 'UCIN--' };
+      hq: 'UH----', recon: 'UCR---', marine: 'UCIN--', training: 'UCI---', signal: 'UUS---', engineer: 'UCE---',
+      maintenance: 'USX---', medical: 'USM---' };
     const sidc = `SFGP${FN[v.branch]}${v.branch === 'hq' ? 'A' : '-'}${ECH[v.echelon]}---`;
     const id = Math.max(1000, ...db.d.units.map((u) => u.id)) + 1;
     Object.assign(row, { id, short_name: v.short_name, name_ua: v.name_ua, echelon: v.echelon, branch: v.branch,
@@ -380,8 +381,8 @@ function exportSql() {
 
 return { localEntries, removeLocal, clearLocal, caliberClass, RowError, validate, addLocal, exportJson, exportSql };
 })();
-// ---- js/offline.js ----
-__M["js/offline.js"] = (function () {
+// ---- offline.js ----
+__M["offline.js"] = (function () {
 // Офлайн-режим: ті самі відповіді, що й FastAPI, але обчислені в браузері зі знімка бази
 // (data/dataset.js → window.DATASET). Використовується, коли index.html відкрито як файл (file://)
 // або сервер API недоступний. Логіка повторює SQL з backend/app/routers/*.py.
@@ -389,7 +390,7 @@ __M["js/offline.js"] = (function () {
 // Час у знімку — «київський настінний» у секундах від 1970-01-01, тому доба/година/день тижня
 // рахуються простим діленням; тривалості — у реальному часі (з урахуванням переходу на літній час).
 /* global DATASET */
-const { localEntries, caliberClass } = __M["js/entries-store.js"];
+const { localEntries, caliberClass } = __M["entries-store.js"];
 const DAY = 86400;
 let DB = null;
 
@@ -1054,14 +1055,14 @@ const db = () => init();
 
 return { init, reload, dayIso, kyivIso, exportCsv, handle, db };
 })();
-// ---- js/api.js ----
-__M["js/api.js"] = (function () {
+// ---- api.js ----
+__M["api.js"] = (function () {
 // Джерело даних дашборду. Два режими з однаковими відповідями:
 //   • online  — FastAPI + PostgreSQL (сторінку відкрито з http://…, сервер відповідає);
 //   • offline — знімок бази data/dataset.js, обчислення в браузері (сторінку відкрито як файл
 //               або сервер недоступний). Так дашборд відкривається на будь-якому комп'ютері.
-const { query } = __M["js/state.js"];
-const offline = __M["js/offline.js"];
+const { query } = __M["state.js"];
+const offline = __M["offline.js"];
 const cache = new Map();
 let modePromise = null;
 
@@ -1117,13 +1118,34 @@ async function get(path, extra = {}, { filters = true } = {}) {
   return p;
 }
 
-async function post(path, body, { csv = false } = {}) {
+// Код доступу для внесення даних (якщо на сервері задано ENTRY_TOKEN). Зберігається лише до закриття вкладки.
+const TOKEN_KEY = 'entry-token';
+function readToken() { try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
+function saveToken(v) { try { if (v) sessionStorage.setItem(TOKEN_KEY, v); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } }
+
+async function write(method, url, body, headers = {}) {
   clearCache();
-  return csv ? http('POST', `/api/${path}`, body, { 'Content-Type': 'text/csv; charset=utf-8' })
-    : http('POST', `/api/${path}`, JSON.stringify(body), { 'Content-Type': 'application/json' });
+  for (let attempt = 0; ; attempt += 1) {
+    const token = readToken();
+    try {
+      return await http(method, url, body, token ? { ...headers, 'X-Entry-Token': token } : headers);
+    } catch (e) {
+      if (e.status !== 401 || attempt >= 2) throw e;
+      saveToken('');
+      const v = window.prompt(attempt ? 'Код неправильний. Введіть код доступу для внесення даних:'
+        : 'Для внесення даних потрібен код доступу (ENTRY_TOKEN з файлу .env):');
+      if (!v) throw e;
+      saveToken(v.trim());
+    }
+  }
 }
 
-async function del(path) { clearCache(); return http('DELETE', `/api/${path}`); }
+async function post(path, body, { csv = false } = {}) {
+  return csv ? write('POST', `/api/${path}`, body, { 'Content-Type': 'text/csv; charset=utf-8' })
+    : write('POST', `/api/${path}`, JSON.stringify(body), { 'Content-Type': 'application/json' });
+}
+
+async function del(path) { return write('DELETE', `/api/${path}`); }
 
 function clearCache() { cache.clear(); }
 
@@ -1146,8 +1168,8 @@ function saveFile(name, text, type) {
 
 return { mode, get, post, del, clearCache, csvUrl, downloadCsv, saveFile };
 })();
-// ---- js/fonts.js ----
-__M["js/fonts.js"] = (function () {
+// ---- fonts.js ----
+__M["fonts.js"] = (function () {
 // Реєстрація шрифтів для Chart.js (v4).
 // Canvas не чекає на @font-face, тому графіки малюємо лише після document.fonts.load(),
 // а вже створені — перемальовуємо (документація Chart.js, «Loading Fonts»).
@@ -1186,8 +1208,8 @@ function applyChartTheme(Chart) {
 
 return { FONT_BODY, FONT_DISPLAY, loadChartFonts, applyChartTheme };
 })();
-// ---- js/format.js ----
-__M["js/format.js"] = (function () {
+// ---- format.js ----
+__M["format.js"] = (function () {
 // Формати: числа uk-UA (пробіл між тисячами, десяткова кома), час «ГГ.ХХ ДД.ММ.РРРР» за київським часом
 // (п. 2.1.1 Порядку). Відсутні значення — «немає відом.» (п. 2.3.6).
 
@@ -1236,11 +1258,133 @@ function isUnverified(rel) { return !!rel && /[4-6]$/.test(rel); }
 
 return { NO_DATA, num, dtg, d, dShort, minutes, esc, isUnverified };
 })();
-// ---- js/kpi.js ----
-__M["js/kpi.js"] = (function () {
+// ---- datefield.js ----
+__M["datefield.js"] = (function () {
+// Поле дати у форматі ДД.ММ.РРРР (і ДД.ММ.РРРР ГГ:ХХ для дати з часом) — п. 2.1.1 Порядку.
+// Стандартний <input type="date"> показує дату у форматі мови браузера (наприклад, 10/02/2026),
+// тому видиме поле — текстове, а календар браузера відкривається кнопкою і лише підставляє значення.
+// Усередині значення зберігається в ISO: data-iso = 'РРРР-ММ-ДД' або 'РРРР-ММ-ДД ГГ:ХХ'.
+
+const ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="3" width="13" height="11.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 6.5h13M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.4"/></svg>';
+
+const pad = (n) => String(n).padStart(2, '0');
+
+// 'РРРР-ММ-ДД[ ГГ:ХХ]' → 'ДД.ММ.РРРР[ ГГ:ХХ]'
+function isoToUa(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(iso || '');
+  if (!m) return '';
+  return `${m[3]}.${m[2]}.${m[1]}${m[4] ? ` ${m[4]}:${m[5]}` : ''}`;
+}
+
+// 'ДД.ММ.РРРР[ ГГ:ХХ]' → 'РРРР-ММ-ДД[ ГГ:ХХ]' або null, якщо дата некоректна
+function uaToIso(text, withTime = false) {
+  const m = /^\s*(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2})[:.](\d{2}))?\s*$/.exec(text || '');
+  if (!m) return null;
+  const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  const date = `${y}-${pad(mo)}-${pad(d)}`;
+  if (!withTime) return date;
+  const h = m[4] === undefined ? 0 : Number(m[4]);
+  const mi = m[5] === undefined ? 0 : Number(m[5]);
+  if (h > 23 || mi > 59) return null;
+  return `${date} ${pad(h)}:${pad(mi)}`;
+}
+
+// HTML поля. attrs — додаткові атрибути видимого текстового поля (name, required тощо).
+function dateFieldHtml(id, { time = false, attrs = '' } = {}) {
+  const ph = time ? 'ДД.ММ.РРРР ГГ:ХХ' : 'ДД.ММ.РРРР';
+  return `<span class="dfield"><input type="text" id="${id}" class="dtext" data-time="${time ? 1 : 0}" placeholder="${ph}"`
+    + ` inputmode="numeric" maxlength="${time ? 16 : 10}" autocomplete="off" spellcheck="false"${attrs}>`
+    + `<input type="${time ? 'datetime-local' : 'date'}" class="dpick" tabindex="-1" aria-hidden="true">`
+    + `<button type="button" class="dbtn" title="Календар" aria-label="Відкрити календар">${ICON}</button></span>`;
+}
+
+function getIso(el) { return el.dataset.iso || ''; }
+
+function setIso(el, iso) {
+  el.dataset.iso = iso || '';
+  el.value = isoToUa(iso);
+  el.removeAttribute('aria-invalid');
+}
+
+function setRange(el, min, max) {
+  el.dataset.min = min || '';
+  el.dataset.max = max || '';
+  const pick = el.parentElement.querySelector('.dpick');
+  if (pick) { pick.min = min || ''; pick.max = max || ''; }
+}
+
+// Підключає поведінку: автокрапки під час введення, перевірка, календар. Подія 'datechange' на текстовому
+// полі спрацьовує лише тоді, коли дата коректна і data-iso змінилося (стандартна 'change' не використовується).
+function initDateField(el) {
+  if (el.dataset.ready) return;
+  el.dataset.ready = '1';
+  const time = el.dataset.time === '1';
+  const wrap = el.parentElement;
+  const pick = wrap.querySelector('.dpick');
+
+  el.addEventListener('input', (e) => {
+    if (e.inputType && e.inputType.startsWith('delete')) return;
+    const digits = el.value.replace(/\D/g, '').slice(0, time ? 12 : 8);
+    let v = digits.slice(0, 2);
+    if (digits.length > 2) v += `.${digits.slice(2, 4)}`;
+    if (digits.length > 4) v += `.${digits.slice(4, 8)}`;
+    if (time && digits.length > 8) v += ` ${digits.slice(8, 10)}`;
+    if (time && digits.length > 10) v += `:${digits.slice(10, 12)}`;
+    el.value = v;
+  });
+
+  const commit = (fire = true) => {
+    if (!el.value.trim()) {
+      const changed = !!el.dataset.iso;
+      el.dataset.iso = '';
+      el.removeAttribute('aria-invalid');
+      if (changed && fire) el.dispatchEvent(new CustomEvent('datechange', { bubbles: true }));
+      return true;
+    }
+    let iso = uaToIso(el.value, time);
+    const day = iso && iso.slice(0, 10);
+    if (iso && ((el.dataset.min && day < el.dataset.min) || (el.dataset.max && day > el.dataset.max))) iso = null;
+    if (!iso) {
+      // Некоректна дата не повинна тихо підмінятися попереднім значенням
+      el.dataset.iso = '';
+      el.setAttribute('aria-invalid', 'true');
+      el.title = `Дата у форматі ${el.placeholder}${el.dataset.min ? `, від ${isoToUa(el.dataset.min)} до ${isoToUa(el.dataset.max)}` : ''}`;
+      return false;
+    }
+    el.removeAttribute('aria-invalid');
+    el.title = '';
+    el.value = isoToUa(iso);
+    if (iso !== el.dataset.iso) {
+      el.dataset.iso = iso;
+      if (fire) el.dispatchEvent(new CustomEvent('datechange', { bubbles: true }));
+    }
+    return true;
+  };
+  el.addEventListener('blur', () => commit());
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+  el.commitDate = commit;
+
+  wrap.querySelector('.dbtn').addEventListener('click', () => {
+    const iso = el.dataset.iso;
+    pick.value = iso ? (time ? iso.replace(' ', 'T') : iso) : '';
+    try { pick.showPicker(); } catch { pick.focus(); pick.click(); }
+  });
+  pick.addEventListener('change', () => {
+    if (!pick.value) return;
+    el.value = isoToUa(pick.value.replace('T', ' '));
+    commit();
+  });
+}
+
+return { isoToUa, uaToIso, dateFieldHtml, getIso, setIso, setRange, initDateField };
+})();
+// ---- kpi.js ----
+__M["kpi.js"] = (function () {
 // KPI-блоки: значення + зміна до попереднього періоду такої самої довжини
-const { get } = __M["js/api.js"];
-const { esc, num, NO_DATA } = __M["js/format.js"];
+const { get } = __M["api.js"];
+const { esc, num, NO_DATA } = __M["format.js"];
 async function renderKpi(root, module) {
   const data = await get('kpi', { module });
   root.innerHTML = data.items.map((k) => {
@@ -1268,8 +1412,8 @@ async function renderKpi(root, module) {
 
 return { renderKpi };
 })();
-// ---- js/symbols.js ----
-__M["js/symbols.js"] = (function () {
+// ---- symbols.js ----
+__M["symbols.js"] = (function () {
 // Умовні знаки: основу малює milsymbol (2525C / APP-6, на яких ґрунтується Порядок, наказ № 140),
 // національні особливості Порядку — власним SVG-шаром поверх знака:
 //   • кольори заливки за табл. 6 Порядку;
@@ -1459,8 +1603,8 @@ function iconHtml(r, cls = '') {
 
 return { BASE, ORDER_COLORS, BLUE, RED, READINESS, render, echelonMark, renderCP, renderTarget, crossForResult, crossForStrike, iconHtml };
 })();
-// ---- js/map.js ----
-__M["js/map.js"] = (function () {
+// ---- map.js ----
+__M["map.js"] = (function () {
 // Карта України: OpenStreetMap + Leaflet + milsymbol.
 // Знаки — за Порядком (наказ № 140); чого в ньому немає — за APP-6 / MIL-STD-2525C.
 // Поведінка від масштабу (п. 5.4.3: розмір знака залежить від масштабу карти):
@@ -1470,10 +1614,10 @@ __M["js/map.js"] = (function () {
 // Засоби повітряного нападу противника (БпЛА, ракети, КАБ) на карті показано лише місцями уражень
 // (знак «Вибух, підрив» п. 6.12 з власним підписом засобу, п. 2.2.16); траєкторії — ні, деталі — у звітах.
 /* global L, GEO */
-const { get } = __M["js/api.js"];
-const { state, toggleOblast, label } = __M["js/state.js"];
-const { BASE, BLUE, RED, READINESS, render, renderTarget, renderCP, echelonMark, iconHtml, crossForResult } = __M["js/symbols.js"];
-const { dtg, esc, num, isUnverified } = __M["js/format.js"];
+const { get } = __M["api.js"];
+const { state, toggleOblast, label } = __M["state.js"];
+const { BASE, BLUE, RED, READINESS, render, renderTarget, renderCP, echelonMark, iconHtml, crossForResult } = __M["symbols.js"];
+const { dtg, esc, num, isUnverified } = __M["format.js"];
 const UA_BOUNDS = L.latLngBounds([44.2, 22.0], [52.45, 40.3]);
 const sizeForZoom = (z) => 14 + (Math.max(5, Math.min(12, z)) - 5) * 4;   // 14 px … 42 px
 // Пороги ×10 (класи mz-N / zl-N): елемент із класом mz-N ховається, коли зум < N/10
@@ -1611,7 +1755,8 @@ class MapView {
     this.schemaBuilt = true;
     const pane = (name, z) => { const p = this.map.createPane(name); p.style.zIndex = z; p.style.pointerEvents = 'none'; return name; };
     const r = L.canvas({ pane: pane('basemap', 150), padding: 0.3 });
-    pane('basemapLabels', 390);
+    // Підписи міст — над хороплетом і знаками (маркери 600, підказки 650), щоб кластери й області їх не закривали
+    pane('basemapLabels', 640);
     const ll = (pts) => pts.map(([lon, lat]) => [lat, lon]);
     const opt = { renderer: r, interactive: false, smoothFactor: 1 };
     B.land.forEach((poly) => L.polygon(poly.map(ll), { ...opt, stroke: false, fillColor: '#F3F0E6', fillOpacity: 1 }).addTo(this.schema));
@@ -2109,13 +2254,13 @@ class MapView {
 
 return { MapView };
 })();
-// ---- js/charts/common.js ----
-__M["js/charts/common.js"] = (function () {
+// ---- charts/common.js ----
+__M["charts/common.js"] = (function () {
 // Спільне для графіків: картка за чеклістом §10.6 ТЗ (назва, підзаголовок з періодом і фільтрами,
 // підпис джерела, «Показати таблицю», експорт PNG/CSV, aria-label), кольори з токенів, формати uk-UA.
 /* global Chart */
-const { state, filterCaption } = __M["js/state.js"];
-const { d, dtg, esc, num, NO_DATA } = __M["js/format.js"];
+const { state, filterCaption } = __M["state.js"];
+const { d, dtg, esc, num, NO_DATA } = __M["format.js"];
 const charts = new Map();
 
 function color(token) {
@@ -2330,12 +2475,12 @@ function bucketText(b) { return b === 'week' ? 'по тижнях' : 'по дн�
 
 return { color, PAL, periodText, sourceText, card, destroyAll, tableHtml, axisTitle, baseOptions, barDataset, lineDataset, markersPlugin, refLinePlugin, periodLabel, bucketText };
 })();
-// ---- js/charts/air.js ----
-__M["js/charts/air.js"] = (function () {
+// ---- charts/air.js ----
+__M["charts/air.js"] = (function () {
 // Модуль A: A1–A4
-const { get } = __M["js/api.js"];
-const { num, dtg } = __M["js/format.js"];
-const { PAL, card, baseOptions, barDataset, lineDataset, markersPlugin, periodLabel, bucketText } = __M["js/charts/common.js"];
+const { get } = __M["api.js"];
+const { num, dtg } = __M["format.js"];
+const { PAL, card, baseOptions, barDataset, lineDataset, markersPlugin, periodLabel, bucketText } = __M["charts/common.js"];
 async function renderA1(root) {
   const data = await get('air/timeline');
   const c = card(root, { id: 'a1', title: 'Динаміка застосування засобів повітряного нападу за типами',
@@ -2428,13 +2573,13 @@ async function renderA4(root) {
 
 return { renderA1, renderA2, renderA3, renderA4 };
 })();
-// ---- js/charts/artillery.js ----
-__M["js/charts/artillery.js"] = (function () {
+// ---- charts/artillery.js ----
+__M["charts/artillery.js"] = (function () {
 // Модуль B: B1–B7
-const { get } = __M["js/api.js"];
-const { label } = __M["js/state.js"];
-const { num } = __M["js/format.js"];
-const { PAL, card, baseOptions, barDataset, periodLabel, bucketText, color, refLinePlugin } = __M["js/charts/common.js"];
+const { get } = __M["api.js"];
+const { label } = __M["state.js"];
+const { num } = __M["format.js"];
+const { PAL, card, baseOptions, barDataset, periodLabel, bucketText, color, refLinePlugin } = __M["charts/common.js"];
 // B1: дзеркальні стовпчики — вихідний вогонь угору, вхідний униз
 async function renderB1(root) {
   const data = await get('artillery/timeline');
@@ -2592,13 +2737,13 @@ async function renderB7(root) {
 
 return { renderB1, renderB2, renderB3, renderB4, renderB5, renderB6, renderB7 };
 })();
-// ---- js/charts/losses.js ----
-__M["js/charts/losses.js"] = (function () {
+// ---- charts/losses.js ----
+__M["charts/losses.js"] = (function () {
 // Модуль C: C1–C5 (лише агрегати)
-const { get } = __M["js/api.js"];
-const { label } = __M["js/state.js"];
-const { d, num } = __M["js/format.js"];
-const { PAL, card, baseOptions, barDataset, lineDataset, periodLabel, color, refLinePlugin } = __M["js/charts/common.js"];
+const { get } = __M["api.js"];
+const { label } = __M["state.js"];
+const { d, num } = __M["format.js"];
+const { PAL, card, baseOptions, barDataset, lineDataset, periodLabel, color, refLinePlugin } = __M["charts/common.js"];
 const KINDS = [['killed', 'Безповоротні (загиблі)'], ['wounded', 'Санітарні (поранені)'], ['missing', 'Зниклі безвісти']];
 
 async function renderC1(root) {
@@ -2638,7 +2783,8 @@ async function renderC3(root) {
   const pts = rows.map((r) => ({ x: r.incoming_rounds, y: r.wounded, day: r.period }));
   const opts = baseOptions({ legend: false, unit: 'осіб' });
   opts.scales = {
-    x: { type: 'linear', beginAtZero: true, title: { display: true, text: 'Пострілів противника за добу' }, grid: { color: color('--grid') },
+    // Точкова діаграма: вісь X не мусить починатися з нуля — межі за даними з невеликим запасом
+    x: { type: 'linear', beginAtZero: false, grace: '5%', title: { display: true, text: 'Пострілів противника за добу' }, grid: { color: color('--grid') },
       ticks: { callback: (v) => num(v) } },
     y: { beginAtZero: true, title: { display: true, text: 'Санітарні втрати, осіб' }, grid: { color: color('--grid') } },
   };
@@ -2715,13 +2861,13 @@ async function renderC5(root) {
 
 return { renderC1, renderC2, renderC3, renderC4, renderC5 };
 })();
-// ---- js/charts/docs.js ----
-__M["js/charts/docs.js"] = (function () {
+// ---- charts/docs.js ----
+__M["charts/docs.js"] = (function () {
 // Модуль D: D1–D4. Нормативи часу обробки — умовні (підтвердження замовника очікується).
-const { get } = __M["js/api.js"];
-const { label } = __M["js/state.js"];
-const { d, dtg, minutes, num } = __M["js/format.js"];
-const { PAL, card, baseOptions, barDataset, lineDataset, refLinePlugin, periodLabel, tableHtml, color } = __M["js/charts/common.js"];
+const { get } = __M["api.js"];
+const { label } = __M["state.js"];
+const { d, dtg, minutes, num } = __M["format.js"];
+const { PAL, card, baseOptions, barDataset, lineDataset, refLinePlugin, periodLabel, tableHtml, color } = __M["charts/common.js"];
 async function renderD1(root) {
   const data = await get('docs/flow');
   const c = card(root, { id: 'd1', title: 'Надходження документів на ОКП за годинами доби і категоріями терміновості',
@@ -2808,12 +2954,12 @@ async function renderD4(root) {
 
 return { renderD1, renderD2, renderD3, renderD4 };
 })();
-// ---- js/journal.js ----
-__M["js/journal.js"] = (function () {
+// ---- journal.js ----
+__M["journal.js"] = (function () {
 // Журнал записів: таблиці за п. 2.3 Порядку (нумераційний і тематичний заголовок, «№ з/п», без порожніх клітинок)
-const { get, downloadCsv } = __M["js/api.js"];
-const { esc, num } = __M["js/format.js"];
-const { periodText } = __M["js/charts/common.js"];
+const { get, downloadCsv } = __M["api.js"];
+const { esc, num } = __M["format.js"];
+const { periodText } = __M["charts/common.js"];
 const MODS = [['air', 'Повітряні удари'], ['alerts', 'Тривоги'], ['artillery', 'Артилерія'], ['counter_battery', 'Контрбатарейна'],
   ['ammo', 'Боєприпаси'], ['equipment', 'Озброєння'], ['losses', 'Втрати'], ['strength', 'Укомплектованість'], ['docs', 'Документи ОКП']];
 const st = { module: 'air', q: '', sort: null, desc: true, offset: 0, limit: 50 };
@@ -2872,18 +3018,19 @@ async function load(root) {
 
 return { renderJournal };
 })();
-// ---- js/entry.js ----
-__M["js/entry.js"] = (function () {
+// ---- entry.js ----
+__M["entry.js"] = (function () {
 // Вкладка «Внесення даних»: форма (один запис) та імпорт файлу (CSV, Excel, JSON).
 //   • онлайн — записи йдуть у PostgreSQL через API (origin = manual / import);
 //   • офлайн — записи зберігаються в цьому браузері (localStorage), одразу враховуються в графіках
 //     і на карті та вивантажуються як .sql (для psql) або .json (для імпорту, коли є сервер).
 /* global L, GEO, XLSX */
-const { get, post, del, mode, clearCache, saveFile } = __M["js/api.js"];
-const { state } = __M["js/state.js"];
-const { esc, num, dtg } = __M["js/format.js"];
-const offline = __M["js/offline.js"];
-const { validate, addLocal, localEntries, removeLocal, clearLocal, exportJson, exportSql, RowError } = __M["js/entries-store.js"];
+const { get, post, del, mode, clearCache, saveFile } = __M["api.js"];
+const { state } = __M["state.js"];
+const { esc, num, dtg } = __M["format.js"];
+const { dateFieldHtml, initDateField, setIso, getIso } = __M["datefield.js"];
+const offline = __M["offline.js"];
+const { validate, addLocal, localEntries, removeLocal, clearLocal, exportJson, exportSql, RowError } = __M["entries-store.js"];
 const KINDS = [['strike', 'Повітряний удар'], ['alert', 'Тривога'], ['artillery', 'Артилерія'],
   ['counter_battery', 'Контрбатарейна'], ['ammo', 'Боєприпаси'], ['equipment', 'Озброєння'], ['losses', 'Втрати'],
   ['strength', 'Укомплектованість'], ['document', 'Документ ОКП'], ['unit', 'Підрозділ']];
@@ -3048,8 +3195,8 @@ function input(f) {
   let ctl;
   if (['oblast', 'unit', 'cp', 'weapon', 'target', 'source', 'rel'].includes(f.type) || f.type.startsWith('enum:')) {
     ctl = `<select id="${id}" name="${f.key}"${req}>${options(f)}</select>`;
-  } else if (f.type === 'ts') ctl = `<input type="datetime-local" id="${id}" name="${f.key}"${req}>`;
-  else if (f.type === 'date') ctl = `<input type="date" id="${id}" name="${f.key}"${req}>`;
+  } else if (f.type === 'ts') ctl = dateFieldHtml(id, { time: true, attrs: ` name="${f.key}"${req}` });
+  else if (f.type === 'date') ctl = dateFieldHtml(id, { attrs: ` name="${f.key}"${req}` });
   else if (f.type === 'int') ctl = `<input type="number" step="1" id="${id}" name="${f.key}"${f.min !== undefined ? ` min="${f.min}"` : ''}${f.max !== undefined ? ` max="${f.max}"` : ''}${req}>`;
   else if (f.type === 'lat' || f.type === 'lon') ctl = `<input type="number" step="0.00001" id="${id}" name="${f.key}"${req}>`;
   else ctl = `<input type="text" id="${id}" name="${f.key}" maxlength="128"${req}>`;
@@ -3063,9 +3210,10 @@ function renderForm(root, m) {
     <div class="row-btns"><button type="submit" class="btn primary">Внести запис</button>
       ${fields.some((f) => f.type === 'lat') ? '<button type="button" class="btn sm" id="e-pick">Вибрати точку на карті</button>' : ''}
       <span id="e-msg" role="status"></span></div>`;
-  const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  fields.filter((f) => f.type === 'ts' && f.required).forEach((f) => { form.elements[f.key].value = now; });
-  fields.filter((f) => f.type === 'date' && f.required).forEach((f) => { form.elements[f.key].value = now.slice(0, 10); });
+  const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16).replace('T', ' ');
+  form.querySelectorAll('.dtext').forEach((el) => initDateField(el));
+  fields.filter((f) => f.type === 'ts' && f.required).forEach((f) => { setIso(form.elements[f.key], now); });
+  fields.filter((f) => f.type === 'date' && f.required).forEach((f) => { setIso(form.elements[f.key], now.slice(0, 10)); });
   root.querySelector('#e-pick')?.addEventListener('click', () => showMap(root));
   ['lat', 'lon'].forEach((k) => form.elements[k]?.addEventListener('change', () => syncOblast(form)));
   form.addEventListener('submit', async (e) => {
@@ -3075,7 +3223,12 @@ function renderForm(root, m) {
     const values = {};
     fields.forEach((f) => {
       const el = form.elements[f.key];
-      values[f.key] = f.type === 'bool' ? (el.checked ? 'так' : 'ні') : el.value.replace('T', ' ');
+      if (f.type === 'bool') values[f.key] = el.checked ? 'так' : 'ні';
+      else if (f.type === 'ts' || f.type === 'date') {
+        el.commitDate?.(false);
+        // коректна дата → ISO; некоректний текст передається як є, щоб перевірка показала помилку в полі
+        values[f.key] = getIso(el) || el.value.trim();
+      } else values[f.key] = el.value;
     });
     msg.className = ''; msg.textContent = 'Перевірка…';
     try {
@@ -3282,23 +3435,24 @@ async function renderList(root, m) {
 
 return { findOblast, renderEntry };
 })();
-// ---- js/app.js ----
-__M["js/app.js"] = (function () {
+// ---- app.js ----
+__M["app.js"] = (function () {
 // Точка входу: фільтри, вкладки (hash-маршрути), теми, перемальовування при зміні стану.
 /* global Chart */
-const { get, mode } = __M["js/api.js"];
-const { state, initFromUrl, setFilters, onChange, query, oblastName } = __M["js/state.js"];
-const { loadChartFonts, applyChartTheme } = __M["js/fonts.js"];
-const { d, dtg, esc } = __M["js/format.js"];
-const { renderKpi } = __M["js/kpi.js"];
-const { MapView } = __M["js/map.js"];
-const { destroyAll } = __M["js/charts/common.js"];
-const { renderA1, renderA2, renderA3, renderA4 } = __M["js/charts/air.js"];
-const { renderB1, renderB2, renderB3, renderB4, renderB5, renderB6, renderB7 } = __M["js/charts/artillery.js"];
-const { renderC1, renderC2, renderC3, renderC4, renderC5 } = __M["js/charts/losses.js"];
-const { renderD1, renderD2, renderD3, renderD4 } = __M["js/charts/docs.js"];
-const { renderJournal } = __M["js/journal.js"];
-const { renderEntry } = __M["js/entry.js"];
+const { get, mode } = __M["api.js"];
+const { state, initFromUrl, setFilters, onChange, query, oblastName } = __M["state.js"];
+const { loadChartFonts, applyChartTheme } = __M["fonts.js"];
+const { d, dtg, esc } = __M["format.js"];
+const { initDateField, setRange, setIso, getIso } = __M["datefield.js"];
+const { renderKpi } = __M["kpi.js"];
+const { MapView } = __M["map.js"];
+const { destroyAll } = __M["charts/common.js"];
+const { renderA1, renderA2, renderA3, renderA4 } = __M["charts/air.js"];
+const { renderB1, renderB2, renderB3, renderB4, renderB5, renderB6, renderB7 } = __M["charts/artillery.js"];
+const { renderC1, renderC2, renderC3, renderC4, renderC5 } = __M["charts/losses.js"];
+const { renderD1, renderD2, renderD3, renderD4 } = __M["charts/docs.js"];
+const { renderJournal } = __M["journal.js"];
+const { renderEntry } = __M["entry.js"];
 const maps = {};
 
 // Місця під графіки у фіксованому порядку (дані вантажаться паралельно, порядок не змінюється)
@@ -3387,28 +3541,30 @@ function addDays(iso, n) {
 function buildFilters() {
   const f = document.querySelector('.filters');
   const { period_from: pf, period_to: pt } = state.meta;
-  f.querySelector('#f-from').min = pf; f.querySelector('#f-from').max = pt;
-  f.querySelector('#f-to').min = pf; f.querySelector('#f-to').max = pt;
-  f.querySelector('#f-from').value = state.date_from;
-  f.querySelector('#f-to').value = state.date_to;
+  const fFrom = f.querySelector('#f-from'), fTo = f.querySelector('#f-to');
+  [fFrom, fTo].forEach((el) => { initDateField(el); setRange(el, pf, pt); });
+  setIso(fFrom, state.date_from);
+  setIso(fTo, state.date_to);
   f.querySelector('#f-oblast').innerHTML = '<option value="">— додати область —</option>'
     + state.dicts.oblasts.map((o) => `<option value="${esc(o.iso_code)}">${esc(o.name_ua)}</option>`).join('');
   f.querySelector('#f-unit').innerHTML = '<option value="">— додати підрозділ —</option>'
     + state.dicts.units.map((u) => `<option value="${u.id}">${esc(u.short_name)}</option>`).join('');
 
   const apply = () => {
-    let from = f.querySelector('#f-from').value, to = f.querySelector('#f-to').value;
+    let from = getIso(fFrom), to = getIso(fTo);
+    if (!from || !to) return;
     if (from > to) [from, to] = [to, from];
+    setIso(fFrom, from); setIso(fTo, to);
     setFilters({ date_from: from, date_to: to });
   };
-  f.querySelector('#f-from').addEventListener('change', apply);
-  f.querySelector('#f-to').addEventListener('change', apply);
+  fFrom.addEventListener('datechange', apply);
+  fTo.addEventListener('datechange', apply);
   f.querySelector('#f-preset').addEventListener('change', (e) => {
     const n = Number(e.target.value);
     if (!n) return;
     const to = pt;
     const from = n >= 365 ? pf : addDays(to, -(n - 1));
-    f.querySelector('#f-from').value = from; f.querySelector('#f-to').value = to;
+    setIso(fFrom, from); setIso(fTo, to);
     setFilters({ date_from: from, date_to: to });
   });
   f.querySelector('#f-oblast').addEventListener('change', (e) => {
@@ -3422,7 +3578,7 @@ function buildFilters() {
   });
   f.querySelector('#f-reset').addEventListener('click', () => {
     const to = pt, from = addDays(pt, -29);
-    f.querySelector('#f-from').value = from; f.querySelector('#f-to').value = to;
+    setIso(fFrom, from); setIso(fTo, to);
     setFilters({ date_from: from, date_to: to, oblast: [], unit: [] });
   });
 }
@@ -3487,7 +3643,7 @@ async function main() {
 
 main().catch((e) => {
   document.querySelector('main').insertAdjacentHTML('afterbegin',
-    `<p class="card">Не вдалося завантажити дані: ${esc(e.message)}.<br>Спосіб 1 — сервер: <code>docker compose up -d</code> і відкрити <code>http://localhost:8000</code>.<br>Спосіб 2 — без сервера: відкрити <code>frontend/index.html</code>; поруч мають бути <code>data/dataset.js</code> і <code>data/geo.js</code> (<code>python -m backend.export_snapshot</code>, <code>python tools/build.py</code>).</p>`);
+    `<p class="card">Не вдалося завантажити дані: ${esc(e.message)}.<br>Спосіб 1 — сервер: <code>uvicorn backend.app.main:app --reload</code> (або <code>docker compose up -d</code>) і відкрити <code>http://localhost:8000</code>.<br>Спосіб 2 — без сервера: відкрити <code>frontend/index.html</code>; поруч мають бути <code>data/dataset.js</code> і <code>data/geo.js</code> (<code>python -m backend.scripts.export_snapshot</code>, <code>python -m backend.scripts.build_frontend</code>).</p>`);
 });
 
 return {  };

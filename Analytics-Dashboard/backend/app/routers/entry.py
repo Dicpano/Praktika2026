@@ -8,17 +8,31 @@ Excel (.xlsx) розбирається у браузері (SheetJS) і надх
 import csv
 import io
 import re
+import secrets
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg import errors as pg_errors
 
+from .. import config
 from ..db import all_rows, writer
 from ..geo import find_oblast
 from ..labels import LABELS
 from ..sidc import caliber_class, unit_sidc
 
 router = APIRouter(prefix="/api", tags=["Внесення даних"])
+
+
+def require_entry_token(request: Request) -> None:
+    """Захист запису: якщо в .env задано ENTRY_TOKEN, POST/DELETE приймаються лише із заголовком X-Entry-Token."""
+    if not config.ENTRY_TOKEN:
+        return
+    got = request.headers.get("X-Entry-Token", "")
+    if not secrets.compare_digest(got.encode("utf-8"), config.ENTRY_TOKEN.encode("utf-8")):
+        raise HTTPException(401, "Потрібен код доступу для внесення даних (ENTRY_TOKEN)")
+
+
+WRITE = [Depends(require_entry_token)]
 
 E = LABELS  # скорочення
 RESULT_FIRE = ["destroyed", "damaged", "suppressed", "no_effect", "unknown"]  # без «вогонь не відкривався»
@@ -482,17 +496,18 @@ def spec():
                 f.update({k: opts[k] for k in ("min", "max") if k in opts})
             fields.append(f)
         out[kind] = {"title": s["title"], "fields": fields}
+    out["_auth"] = {"token_required": bool(config.ENTRY_TOKEN)}
     return out
 
 
-@router.post("/entry/{kind}")
+@router.post("/entry/{kind}", dependencies=WRITE)
 async def add_record(kind: str, request: Request):
     """Один запис із форми дашборду (origin = 'manual')."""
     body = await request.json()
     return _insert(kind, [body], "manual")
 
 
-@router.post("/import/{kind}")
+@router.post("/import/{kind}", dependencies=WRITE)
 async def import_rows(kind: str, request: Request):
     """Пакетний імпорт (CSV або JSON-рядки з Excel). Помилка в будь-якому рядку — не вноситься нічого."""
     return _insert(kind, await _rows_from_request(request), "import")
@@ -547,7 +562,7 @@ def records(kind: str):
     return all_rows(f"{RECENT[kind]} WHERE {a}.origin <> 'synthetic' ORDER BY {a}.id DESC LIMIT 200")
 
 
-@router.delete("/entry/{kind}/{rid}")
+@router.delete("/entry/{kind}/{rid}", dependencies=WRITE)
 def delete_record(kind: str, rid: int):
     if kind not in SPEC:
         raise HTTPException(404, "Невідомий тип запису")

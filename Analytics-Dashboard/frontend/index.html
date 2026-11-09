@@ -35,8 +35,8 @@
   <form class="filters" aria-label="Глобальні фільтри" onsubmit="return false">
     <label>Період<select id="f-preset"><option value="">— швидкий вибір —</option><option value="7">останні 7 діб</option>
       <option value="30">останні 30 діб</option><option value="90">останні 90 діб</option><option value="366">весь період</option></select></label>
-    <label>З<input type="date" id="f-from" required></label>
-    <label>По<input type="date" id="f-to" required></label>
+    <label for="f-from">З<span class="dfield"><input type="text" id="f-from" class="dtext" data-time="0" placeholder="ДД.ММ.РРРР" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false" required><input type="date" class="dpick" tabindex="-1" aria-hidden="true"><button type="button" class="dbtn" title="Календар" aria-label="Відкрити календар"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="3" width="13" height="11.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 6.5h13M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.4"/></svg></button></span></label>
+    <label for="f-to">По<span class="dfield"><input type="text" id="f-to" class="dtext" data-time="0" placeholder="ДД.ММ.РРРР" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false" required><input type="date" class="dpick" tabindex="-1" aria-hidden="true"><button type="button" class="dbtn" title="Календар" aria-label="Відкрити календар"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="3" width="13" height="11.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 6.5h13M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.4"/></svg></button></span></label>
     <label>Область<select id="f-oblast"></select></label>
     <label>Підрозділ<select id="f-unit"></select></label>
     <div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Застосовано</div><div class="chips" id="f-chips"></div></div>
@@ -107,7 +107,7 @@
   <script src="vendor/chartjs/chart.umd.js"></script>
   <script src="data/geo.js"></script>
   <script src="data/basemap.js"></script>
-  <!-- Зібрано з js/*.js командою python tools/build.py (працює і з file://) -->
+  <!-- Зібрано з src/*.js командою python -m backend.scripts.build_frontend (працює і з file://) -->
   <script src="js/bundle.js"></script>
 </body>
 </html>

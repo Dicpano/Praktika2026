@@ -10,6 +10,7 @@ PostgreSQL 16 → Python (FastAPI) → вебдашборд (Leaflet + OpenStree
 - Умовні знаки, час і таблиці — за наказом № 140 (ВКДП 5(3)-00(01).02).
 - Повне ТЗ: [TZ.md](TZ.md). Стан робіт: [PROGRESS.md](PROGRESS.md).
 - **Покрокова інструкція (архітектура, запуск, структура файлів): [ІНСТРУКЦІЯ.md](ІНСТРУКЦІЯ.md).**
+- **Запуск у терміналі VS Code** (папка `D:\github\Praktika2026\Analytics-Dashboard`): `cd D:\github\Praktika2026\Analytics-Dashboard` → `python -m venv .venv` → `.\.venv\Scripts\Activate.ps1` → `python -m pip install -r backend\requirements.txt` → `copy .env.example .env` → `docker compose up -d db` → `uvicorn backend.app.main:app --reload` → http://localhost:8000 (докладно — розділ «Запуск»).
 
 Модулі:
 - **A** — повітряні удари (БпЛА, крилаті й балістичні ракети, КАБ) і тривоги;
@@ -17,21 +18,117 @@ PostgreSQL 16 → Python (FastAPI) → вебдашборд (Leaflet + OpenStree
 - **C** — особовий склад: втрати (лише агрегати) і укомплектованість;
 - **D** — документообіг ОКП.
 
-## Два способи відкрити дашборд
+## Структура проєкту
+
+Проєкт поділено на дві частини: **бекенд** (Python, FastAPI, база даних) і **фронтенд** (те, що бачить браузер). Сайт запускає FastAPI командою `uvicorn backend.app.main:app`: один процес роздає і сторінки, і API.
+
+```
+Analytics-Dashboard/
+├── docker-compose.yml      ← PostgreSQL + сервер у Docker
+├── .env.example            ← зразок налаштувань (порти, паролі, ENTRY_TOKEN)
+│
+├── backend/                ← СЕРВЕРНА ЧАСТИНА
+│   ├── app/                   FastAPI-застосунок
+│   │   ├── main.py               точка входу (uvicorn backend.app.main:app): API + роздача фронтенду
+│   │   ├── config.py · db.py     налаштування з .env, пули з'єднань (ролі dashboard_ro / dashboard_rw)
+│   │   ├── filters.py · schemas.py · labels.py · sidc.py · geo.py · snapshot.py
+│   │   └── routers/              модулі API: meta, kpi, air (A), artillery (B), losses (C), docs (D),
+│   │                             map, journal, entry (внесення даних)
+│   ├── database/              база даних PostgreSQL 16
+│   │   ├── init/                 01_schema.sql · 02_views.sql · 03_seed.sql (виконуються по черзі)
+│   │   ├── dashboard_dump.sql    повний дамп одним файлом
+│   │   ├── generate_seed.py      генератор синтетичних даних (+ oblasts_ref.py)
+│   │   └── sources/              межі областей, DeepStateMap, підкладка Natural Earth, скрипти оновлення
+│   ├── scripts/               службові скрипти
+│   │   ├── build_frontend.py     збірка фронтенду (src/ → js/bundle.js, геодані, шрифти)
+│   │   └── export_snapshot.py    знімок бази → frontend/data/dataset.js (офлайн-режим)
+│   ├── tests/                 тести API (pytest)
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+└── frontend/               ← КЛІЄНТСЬКА ЧАСТИНА (роздається FastAPI; відкривається і як файл)
+    ├── index.html · print.html   сторінка дашборду і друкована довідка
+    ├── src/                      вихідний код (ES-модулі): app, api, offline, map, symbols, datefield,
+    │                             entry, journal, kpi, charts/ (A, B, C, D) …
+    ├── js/                       зібрані bundle.js і print.bundle.js (не редагувати вручну)
+    ├── css/ · fonts/             стилі (брендбук ЗСУ), шрифт Volja
+    ├── data/                     dataset.js (знімок бази), geo.js, basemap.js
+    └── vendor/                   Leaflet, markercluster, milsymbol, Chart.js, SheetJS (локальні копії)
+```
+
+## Запуск
 
 | Спосіб | Що потрібно | Звідки дані | Внесені записи |
 |---|---|---|---|
-| **1. Із сервером** (повний) | Docker Desktop | PostgreSQL через FastAPI | одразу в базі даних |
-| **2. Без сервера** (будь-який комп'ютер) | лише браузер | знімок бази `frontend/data/dataset.js` | у браузері; вивантаження `.sql` / `.json` |
+| **1. FastAPI на цьому ПК** (основний: venv → бібліотеки → uvicorn у VS Code) | Python 3.12+, VS Code, PostgreSQL (у Docker або встановлений) | PostgreSQL через FastAPI | одразу в базі даних |
+| **2. Усе в Docker** | Docker Desktop | PostgreSQL через FastAPI | одразу в базі даних |
+| **3. Без сервера** | лише браузер | знімок бази `frontend/data/dataset.js` | у браузері; вивантаження `.sql` / `.json` |
 
 Режим дашборд визначає сам і показує плашкою в шапці: «Сервер: PostgreSQL» або «Офлайн: знімок бази».
 
-### 1. Із сервером (Docker)
+### 1. FastAPI на цьому ПК: запуск командами у VS Code (основний)
+
+Папка проєкту: **`D:\github\Praktika2026\Analytics-Dashboard`**. Усі команди виконуються в терміналі VS Code (**Terminal → New Terminal**, PowerShell).
+
+**Крок 0. Перейти в папку проєкту** — щоразу, коли відкриваєте новий термінал:
+```powershell
+cd D:\github\Praktika2026\Analytics-Dashboard
+```
+Якщо у VS Code відкрито весь репозиторій `D:\github\Praktika2026`, термінал стартує в його корені, тому без цього кроку команди не знайдуть файли проєкту. Можна відкрити одразу папку проєкту: **File → Open Folder → `D:\github\Praktika2026\Analytics-Dashboard`**. Перевірка: `pwd` показує `D:\github\Praktika2026\Analytics-Dashboard`.
+
+**Крок 1. Віртуальне оточення (venv)** — один раз:
+```powershell
+python -m venv .venv
+```
+Створюється папка `D:\github\Praktika2026\Analytics-Dashboard\.venv` з окремою копією Python для проєкту. У git вона не потрапляє (`.gitignore` проєкту).
+
+**Крок 2. Активувати venv** — щоразу, коли відкриваєте новий термінал:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+На початку рядка терміналу з'явиться `(.venv)`.
+Якщо PowerShell пише «running scripts is disabled», спершу виконайте `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` і повторіть.
+У VS Code також виберіть інтерпретатор: `Ctrl+Shift+P` → **Python: Select Interpreter** → **Enter interpreter path** → `D:\github\Praktika2026\Analytics-Dashboard\.venv\Scripts\python.exe`.
+
+**Крок 3. Встановити бібліотеки** — один раз (в активованому venv):
+```powershell
+python -m pip install -r backend\requirements.txt
+```
+Встановлюються FastAPI, uvicorn, psycopg (драйвер PostgreSQL), pydantic, python-dotenv, pytest. Перевірка: `pip list`.
+
+**Крок 4. Налаштування** — один раз:
+```powershell
+copy .env.example .env
+```
+У `D:\github\Praktika2026\Analytics-Dashboard\.env` — порт і паролі бази, `ENTRY_TOKEN`. У git цей файл не потрапляє.
+
+**Крок 5. Запустити базу даних** (Docker Desktop має бути запущений):
+```powershell
+docker compose up -d db
+```
+PostgreSQL 16 на порту 5433. Перший старт 1–3 хв: завантажуються `backend\database\init\*.sql`. Перевірка: `docker compose ps` (статус `healthy`).
+Без Docker — власний PostgreSQL 16: `createdb -p 5433 dashboard`, потім `psql -p 5433 -d dashboard -f backend\database\dashboard_dump.sql`.
+
+**Крок 6. Запустити сайт:**
+```powershell
+uvicorn backend.app.main:app --reload
+```
+У терміналі з'явиться `База даних: PostgreSQL localhost:5433/dashboard — підключено` і `Uvicorn running on http://127.0.0.1:8000`.
+Відкрийте **http://localhost:8000** (Ctrl + клік по адресі в терміналі). Документація API: **http://localhost:8000/docs**. Зупинити сервер — `Ctrl+C`.
+`--reload` перезапускає сервер, коли змінюєте код бекенду. Інший порт: `--port 8080`.
+
+**Наступного разу** — чотири команди:
+```powershell
+cd D:\github\Praktika2026\Analytics-Dashboard
+.\.venv\Scripts\Activate.ps1
+docker compose up -d db
+uvicorn backend.app.main:app --reload
+```
+
+### 2. Усе в Docker
 
 1. Встановіть [Docker Desktop](https://www.docker.com/products/docker-desktop/) (`winget install -e --id Docker.DockerDesktop`) і запустіть його. Потрібен WSL 2: `wsl --install --no-distribution` від адміністратора і перезавантаження (докладно — ІНСТРУКЦІЯ.md, 5.2).
-2. Скопіюйте папку `Analytics-Dashboard` (або виконайте `git clone`) і відкрийте в ній термінал.
-3. Виконайте `docker compose up -d`. Перший старт триває 1–3 хв: PostgreSQL завантажує `db/init/*.sql`.
-4. Відкрийте http://localhost:8000. Документація API: http://localhost:8000/docs.
+2. У папці проєкту (`cd D:\github\Praktika2026\Analytics-Dashboard`): `docker compose up -d` → http://localhost:8000. Контейнер `api` запускає ту саму команду `uvicorn backend.app.main:app`.
 
 | Дія | Команда |
 |---|---|
@@ -42,7 +139,7 @@ PostgreSQL 16 → Python (FastAPI) → вебдашборд (Leaflet + OpenStree
 
 Порти й паролі задаються у файлі `.env` (зразок — [.env.example](.env.example)).
 
-### 2. Без сервера
+### 3. Без сервера
 
 Скопіюйте папку `frontend/` на будь-який комп'ютер і відкрийте `frontend/index.html` у браузері (Edge, Chrome, Firefox).
 
@@ -50,7 +147,7 @@ PostgreSQL 16 → Python (FastAPI) → вебдашборд (Leaflet + OpenStree
 - Інтернет потрібен лише для підкладки OpenStreetMap. Без нього карта сама перемикається на векторну схему Natural Earth (кордони, річки, міста); перемикач «Підкладка» — на панелі карти.
 
 Як оновити знімок після змін у базі (наприклад, після внесення записів):
-- `python -m backend.export_snapshot`;
+- `python -m backend.scripts.export_snapshot`;
 - або завантажте http://localhost:8000/api/snapshot.js і покладіть у `frontend/data/dataset.js`.
 
 ## Де вносити дані
@@ -74,51 +171,39 @@ PostgreSQL 16 → Python (FastAPI) → вебдашборд (Leaflet + OpenStree
 
 API для внесення: `POST /api/entry/{kind}`, `POST /api/import/{kind}` (CSV або JSON), `DELETE /api/entry/{kind}/{id}`. Значення `kind`: `strike`, `alert`, `artillery`, `counter_battery`, `ammo`, `equipment`, `losses`, `strength`, `document`, `unit`.
 
+**Код доступу.** Якщо у `.env` задано `ENTRY_TOKEN`, сервер приймає внесення і видалення лише із заголовком `X-Entry-Token`; дашборд сам запитає код при першому записі (код зберігається до закриття вкладки). Порожній `ENTRY_TOKEN` — без коду: так зручно на власному ПК, бо сервер і так доступний лише з `localhost`. Якщо запускаєте з `uvicorn ... --host 0.0.0.0` (доступ з мережі) — код обов'язковий. Читання даних код не потребує.
+
 ## PostgreSQL і SQL-файли (що здається)
 
 | Файл | Зміст |
 |---|---|
-| [db/init/01_schema.sql](db/init/01_schema.sql) | схема: довідники, таблиці модулів A–D, обмеження, індекси |
-| [db/init/02_views.sql](db/init/02_views.sql) | аналітичні представлення `v_*`, ролі `dashboard_ro` (читання) і `dashboard_rw` (внесення) |
-| [db/init/03_seed.sql](db/init/03_seed.sql) | дані: 109 умовних підрозділів (87 фронтових і 22 тилові частини — навчальні центри, частини забезпечення — у тилових областях); 6 387 ударів (з них 1 035 балістичних); 18 108 тривог; 31 063 обстріли; 5 704 виявлені вогневі позиції (контрбатарейна боротьба); 9 855 добових записів руху боєприпасів; 1 404 щотижневі донесення про озброєння; 14 257 рядків втрат; 39 785 добових донесень про укомплектованість; 47 929 документів; 268 підрозділів противника і лінія зіткнення з DeepState |
-| [db/dashboard_dump.sql](db/dashboard_dump.sql) | повний дамп (схема + дані + ролі) одним файлом |
-
-## Запуск без Docker
-
-Потрібні PostgreSQL 16 і Python 3.12+.
-
-```
-createdb -p 5433 dashboard
-psql -p 5433 -d dashboard -f db/dashboard_dump.sql      # або по черзі db/init/01, 02, 03
-python -m venv .venv
-.venv\Scripts\activate            # Linux/macOS: source .venv/bin/activate
-pip install -r backend/requirements.txt
-copy .env.example .env            # Linux/macOS: cp
-uvicorn backend.app.main:app --port 8000
-```
+| [backend/database/init/01_schema.sql](backend/database/init/01_schema.sql) | схема: довідники, таблиці модулів A–D, обмеження, індекси |
+| [backend/database/init/02_views.sql](backend/database/init/02_views.sql) | аналітичні представлення `v_*`, ролі `dashboard_ro` (читання) і `dashboard_rw` (внесення) |
+| [backend/database/init/03_seed.sql](backend/database/init/03_seed.sql) | дані: 109 умовних підрозділів (87 фронтових і 22 тилові частини — навчальні центри, частини забезпечення — у тилових областях); 6 367 ударів (з них 1 042 балістичні); 18 164 тривоги; 31 443 обстріли; 5 795 виявлених вогневі позиції (контрбатарейна боротьба); 10 950 добових записів руху боєприпасів; 1 560 щотижневих донесення про озброєння; 14 220 рядків втрат; 39 785 добових донесень про укомплектованість; 48 240 документів; 268 підрозділів противника і лінія зіткнення з DeepState |
+| [backend/database/dashboard_dump.sql](backend/database/dashboard_dump.sql) | повний дамп (схема + дані + ролі) одним файлом — для відновлення без Docker (`psql -f`) |
 
 ## Для розробника
 
 | Дія | Команда |
 |---|---|
-| Тести API (потрібна жива БД з `.env`) | `pytest backend/tests -q` |
-| Зібрати фронтенд після зміни `frontend/js/*.js`, шрифтів або геоданих | `python tools/build.py` |
-| Знімок бази для офлайн-режиму | `python -m backend.export_snapshot` |
-| Оновити лінію, зони й противника з DeepStateMap | `python db/sources/update_deepstate.py` |
-| Оновити підкладку без інтернету (Natural Earth) | `python db/sources/update_basemap.py`, потім `python tools/build.py` |
-| Перегенерувати дані | `python db/generate_seed.py --seed 140 --from 2025-11-01 --to 2026-10-31` |
+| Тести API (активований venv, жива БД, `.env`) | `pytest backend/tests -q` |
+| Зібрати фронтенд після зміни `frontend/src/*.js`, шрифтів або геоданих | `python -m backend.scripts.build_frontend` |
+| Знімок бази для офлайн-режиму | `python -m backend.scripts.export_snapshot` |
+| Оновити лінію, зони й противника з DeepStateMap | `python backend/database/sources/update_deepstate.py` |
+| Оновити підкладку без інтернету (Natural Earth) | `python backend/database/sources/update_basemap.py`, потім `python -m backend.scripts.build_frontend` |
+| Перегенерувати дані | `python backend/database/generate_seed.py --seed 140 --from 2025-11-01 --to 2026-10-31` |
 
-Про збірку: вихідний код — ES-модулі в `frontend/js/`. Сторінка підключає зібраний `js/bundle.js`, бо браузер не завантажує модулі зі сторінки, відкритої як файл. Крім бандла, `tools/build.py` створює `data/geo.js`, `data/basemap.js` і вбудовує шрифти в `css/fonts.css`.
+Про збірку: вихідний код — ES-модулі в `frontend/src/`. Сторінка підключає зібраний `js/bundle.js`, бо браузер не завантажує модулі зі сторінки, відкритої як файл. Крім бандла, `backend/scripts/build_frontend.py` створює `data/geo.js`, `data/basemap.js` і вбудовує шрифти в `css/fonts.css`.
 
 Після перегенерації даних:
 - `docker compose down -v && docker compose up -d`;
-- `python -m backend.export_snapshot`.
+- `python -m backend.scripts.export_snapshot`.
 
 Нормативи ОКП (умовні) задаються списком `NORMS` у генераторі.
 
 ## Карта
 
-- **Вибір знака:** спершу наказ № 140; якщо там немає — APP-6 / MIL-STD-2525C; власні позначення — за п. 2.2.16, з поясненням у легенді. Знаки малює milsymbol, кольори — за табл. 6 Порядку. Окремим SVG-шаром ([symbols.js](frontend/js/symbols.js)) накладаються:
+- **Вибір знака:** спершу наказ № 140; якщо там немає — APP-6 / MIL-STD-2525C; власні позначення — за п. 2.2.16, з поясненням у легенді. Знаки малює milsymbol, кольори — за табл. 6 Порядку. Окремим SVG-шаром ([symbols.js](frontend/src/symbols.js)) накладаються:
   - позначки ураження (п. 2.2.12);
   - «?» для неперевірених даних (п. 2.2.15);
   - смуга боєздатності AL.
@@ -143,16 +228,6 @@ uvicorn backend.app.main:app --port 8000
   - товщина лінії — обсяг документів;
   - колір — частка прострочених: < 5 % / 5–10 % / > 10 %.
 - **Посилання на вид:** `/?z=9&c=48.75,37.4&layers=units,docs,line#map` (`layers` — набір увімкнених шарів).
-
-## Структура
-
-```
-db/        init/01_schema.sql 02_views.sql 03_seed.sql · dashboard_dump.sql · generate_seed.py
-           sources/ (межі областей, deepstate.json, basemap.json, update_*.py)
-backend/   app/ (FastAPI: роутери модулів, entry — внесення, snapshot — знімок) · tests/ · export_snapshot.py · Dockerfile
-tools/     build.py — збірка фронтенду
-frontend/  index.html · print.html · css/ · js/ (модулі + bundle.js) · fonts/ · vendor/ · data/ (dataset.js, geo.js, basemap.js)
-```
 
 ## ER-діаграма
 

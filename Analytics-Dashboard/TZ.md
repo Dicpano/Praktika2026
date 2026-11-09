@@ -1,16 +1,26 @@
 # Технічне завдання
 ## Аналітичний дашборд оперативної обстановки (на синтетичних даних)
 
-**Версія:** 3.3
-**Дата:** 2026-11-07
+**Версія:** 3.4
+**Дата:** 2026-11-09
 **Тип:** навчальний проєкт (практична робота)
 **Папка проєкту:** `Analytics-Dashboard/`. Це окремий проєкт, попередній сайт у `Веб сайт для моніторингу ударів по україні/` не змінюється.
-**Архітектура:** PostgreSQL → Python (FastAPI) → Web-dashboard (Docker). Додатково — офлайн-режим: `frontend/index.html` відкривається як файл на будь-якому комп'ютері зі знімка бази (§4.4)
+**Архітектура:** PostgreSQL → Python (FastAPI) → Web-dashboard. Сайт запускає FastAPI командами в терміналі VS Code: venv → бібліотеки → `uvicorn backend.app.main:app` (або Docker). Додатково — офлайн-режим: `frontend/index.html` відкривається як файл на будь-якому комп'ютері зі знімка бази (§4.4)
 
 **Нормативна база для оформлення:**
 - Брендбук: «Керівництво з використання графічного стилю у візуальній комунікації ЗСУ», ред. від 20.02.2024.
 - **Наказ № 140:** ВКДП 5(3)-00(01).02 «Тимчасовий порядок оформлення оперативних (бойових) документів», затверджений наказом Головнокомандувача ЗСУ від 11.09.2020 № 140. Далі в тексті «Порядок».
 - APP-6 «Military Symbols for Land Based Systems» (NATO, 1986). Історична основа знаків, на яку спирається Порядок.
+
+**Зміни у версії 3.4** (вимоги замовника від 09.11.2026, реалізовано):
+- **Структура проєкту:** дві частини — `backend/` (FastAPI `app/`, база даних `database/`, службові `scripts/`, `tests/`) і `frontend/` (вихідні модулі `src/`, зібрані `js/`, `css/`, `data/`, `vendor/`). Папки `db/` і `tools/` прибрано (§12).
+- **Запуск через FastAPI командами у VS Code** (вимога викладача від 09.11.2026): `python -m venv .venv` → активація → `python -m pip install -r backend/requirements.txt` → `copy .env.example .env` → `docker compose up -d db` → `uvicorn backend.app.main:app --reload`. Скриптів-автозапуску немає. FastAPI роздає сторінки `/` і `/print` і статичні файли, під час старту пише в термінал стан підключення до бази; контейнер `api` запускає ту саму команду uvicorn (§4).
+- **Код доступу для внесення даних:** `ENTRY_TOKEN` у `.env`; POST/DELETE без заголовка `X-Entry-Token` відхиляються (401), дашборд запитує код сам (§7.1).
+- **Шрифти:** Volja — для заголовків, вкладок, кнопок, KPI, підписів і графіків; довгий текст (описи, легенда, таблиці, форми) — системним шрифтом, бо Volja має лише великі літери (§9.2).
+- **Дати** у фільтрах і формі внесення — у форматі ДД.ММ.РРРР (ГГ:ХХ) незалежно від мови браузера (п. 2.1.1 Порядку), з кнопкою календаря.
+- **KPI:** одиниця виміру переноситься, а не обрізається; **графік C3:** вісь X за діапазоном даних.
+- **Карта:** підписи міст на «Схемі» — над хороплетом і кластерами.
+- **Дані v1.1:** у генераторі столиця і Київщина уражаються частіше за інші тилові області; дані, дамп і знімок перегенеровано (seed 140).
 
 **Зміни у версії 3.3** (вимоги замовника від 07.11.2026, реалізовано):
 - **Модуль B доповнено:** контрбатарейна боротьба (`counter_battery`), рух боєприпасів (`ammo_supply`), стан артилерійського озброєння (`artillery_equipment`); графіки B4–B7, KPI «Відповідь на виявлені позиції» і «Справних артсистем», шар карти «Контрбатарейна боротьба» (§5.3).
@@ -92,7 +102,7 @@
 
 | Сервіс | Образ | Призначення |
 |---|---|---|
-| `db` | `postgres:16-alpine` | Під час першого старту виконує `db/init/*.sql` через `/docker-entrypoint-initdb.d`. Дані зберігаються в іменованому томі. |
+| `db` | `postgres:16-alpine` | Під час першого старту виконує `backend/database/init/*.sql` через `/docker-entrypoint-initdb.d`. Дані зберігаються в іменованому томі. |
 | `api` | `backend/Dockerfile` (`python:3.12-slim`) | FastAPI + роздача фронтенду. Стартує після healthcheck `db`. |
 
 **Запуск:**
@@ -104,26 +114,35 @@
 - `docker compose down -v`: повне скидання.
 - `docker compose exec db pg_dump …`: вивантаження дампу.
 
-### 4.2. Запасний спосіб: без Docker
+### 4.2. Запуск сайту через FastAPI командами в терміналі VS Code
 
-1. Встановити PostgreSQL 16 і Python 3.12.
-2. `createdb dashboard`, потім `psql -d dashboard -f db/dashboard_dump.sql`.
-3. `python -m venv .venv`, потім `pip install -r backend/requirements.txt`.
-4. Скопіювати `.env.example` у `.env`.
-5. `uvicorn backend.app.main:app --port 8000`.
+Студент запускає проєкт сам, по кроках, у терміналі VS Code (PowerShell). Папка проєкту — `D:\github\Praktika2026\Analytics-Dashboard` (у репозиторії `Praktika2026`):
+
+```powershell
+cd D:\github\Praktika2026\Analytics-Dashboard                 # 0. папка проєкту
+python -m venv .venv                                  # 1. віртуальне оточення (один раз)
+.\.venv\Scripts\Activate.ps1                          # 2. активувати (у кожному новому терміналі)
+python -m pip install -r backend\requirements.txt     # 3. бібліотеки (один раз)
+copy .env.example .env                                # 4. налаштування (один раз)
+docker compose up -d db                               # 5. база PostgreSQL 16 (порт 5433)
+uvicorn backend.app.main:app --reload                 # 6. сайт → http://localhost:8000
+```
+
+- Без Docker — власний PostgreSQL 16: `createdb dashboard`, `psql -d dashboard -f backend/database/dashboard_dump.sql`.
+- Один процес FastAPI роздає сторінки (`/`, `/print`), статичні файли фронтенду і API (`/api/...`, `/docs`). Під час старту сервер пише в термінал, чи підключено базу; без бази сайт працює на знімку.
 
 ### 4.3. Автономність
 
 - Бібліотеки (Leaflet, markercluster, milsymbol, Chart.js) лежать локально в `frontend/vendor/` з фіксованими версіями.
-- Шрифти лежать у `frontend/fonts/` (для офлайн-збірки вбудовуються в CSS), межі областей і зони DeepState — у `db/sources/` (для фронтенду збираються в `frontend/data/geo.js`).
+- Шрифти лежать у `frontend/fonts/` (для офлайн-збірки вбудовуються в CSS), межі областей і зони DeepState — у `backend/database/sources/` (для фронтенду збираються в `frontend/data/geo.js`).
 - Інтернет потрібен лише для тайлів OpenStreetMap.
 - Секрети зберігаються в `.env`, у git лише `.env.example`.
 
 ### 4.4. Офлайн-режим (відкрити `index.html` на будь-якому комп'ютері)
 
-- Якщо сторінку відкрито як файл (`file://`) або API не відповідає за 2,5 с, дашборд завантажує знімок бази `frontend/data/dataset.js` і рахує всі показники в браузері (`js/offline.js` повторює SQL роутерів). Відповіді збігаються з API.
-- Знімок формує `python -m backend.export_snapshot` або завантажується з `GET /api/snapshot.js` (з усіма внесеними записами). Розмір ≈ 6,4 МБ.
-- Браузер не завантажує ES-модулі з `file://`, тому для офлайну потрібна збірка `tools/build.py` → `js/bundle.js` (класичний скрипт), шрифти вбудовуються в CSS, межі областей і зони — у `data/geo.js`.
+- Якщо сторінку відкрито як файл (`file://`) або API не відповідає за 2,5 с, дашборд завантажує знімок бази `frontend/data/dataset.js` і рахує всі показники в браузері (`src/offline.js` повторює SQL роутерів). Відповіді збігаються з API.
+- Знімок формує `python -m backend.scripts.export_snapshot` або завантажується з `GET /api/snapshot.js` (з усіма внесеними записами). Розмір ≈ 8,9 МБ.
+- Браузер не завантажує ES-модулі з `file://`, тому для офлайну потрібна збірка `backend/scripts/build_frontend.py` → `js/bundle.js` (класичний скрипт), шрифти вбудовуються в CSS, межі областей і зони — у `data/geo.js`.
 - Записи, внесені офлайн, зберігаються в `localStorage` браузера і вивантажуються як `.sql` (INSERT-и для PostgreSQL) або `.json` (для імпорту в онлайн-режимі).
 - Інтернет потрібен лише для тайлів OSM; без нього карта показує межі областей і знаки на сірому тлі.
 
@@ -161,7 +180,7 @@ CREATE TABLE units (
   origin     VARCHAR(10) NOT NULL DEFAULT 'synthetic'  -- synthetic | manual | import
 );
 
--- Підрозділи противника: відкриті дані DeepStateMap (db/sources/deepstate.json), 268 записів
+-- Підрозділи противника: відкриті дані DeepStateMap (backend/database/sources/deepstate.json), 268 записів
 CREATE TABLE enemy_units (
   id SMALLSERIAL PRIMARY KEY, name_ua VARCHAR(160) NOT NULL, label VARCHAR(24) NOT NULL,
   branch VARCHAR(16) NOT NULL,
@@ -275,7 +294,7 @@ CREATE TABLE artillery_fire (
 );
 ```
 
-Доповнення v3.3 (повні визначення — `db/init/01_schema.sql`):
+Доповнення v3.3 (повні визначення — `backend/database/init/01_schema.sql`):
 
 | Таблиця | Зміст | Звідки в генераторі |
 |---|---|---|
@@ -366,7 +385,7 @@ CREATE TABLE incoming_documents (
 
 ### 6.1. Генератор
 
-`db/generate_seed.py` з параметрами `--seed`, `--from`, `--to` формує `db/init/03_seed.sql`. Готовий файл комітиться в репозиторій. Період даних: 01.11.2025 – 31.10.2026.
+`backend/database/generate_seed.py` з параметрами `--seed`, `--from`, `--to` формує `backend/database/init/03_seed.sql`. Готовий файл комітиться в репозиторій. Період даних: 01.11.2025 – 31.10.2026.
 
 ### 6.2. Обсяг
 
@@ -426,11 +445,11 @@ CREATE TABLE incoming_documents (
 
 | Файл | Зміст |
 |---|---|
-| `db/init/01_schema.sql` | схема |
-| `db/init/02_views.sql` | представлення та ролі |
-| `db/init/03_seed.sql` | дані |
-| `db/dashboard_dump.sql` | повний дамп (перегенерувати після змін схеми) |
-| `db/sources/` | вихідні дані генератора: межі областей (geoBoundaries), `deepstate.json` + скрипт оновлення `update_deepstate.py` |
+| `backend/database/init/01_schema.sql` | схема |
+| `backend/database/init/02_views.sql` | представлення та ролі |
+| `backend/database/init/03_seed.sql` | дані |
+| `backend/database/dashboard_dump.sql` | повний дамп (перегенерувати після змін схеми) |
+| `backend/database/sources/` | вихідні дані генератора: межі областей (geoBoundaries), `deepstate.json` + скрипт оновлення `update_deepstate.py` |
 
 ---
 
@@ -477,14 +496,15 @@ CREATE TABLE incoming_documents (
 - Область, якщо не вказана, визначається за координатами (point-in-polygon по межах geoBoundaries); клас калібру — за калібром (табл. 16).
 - Перевірки: межі України, дата з 24.02.2022 до сьогодні, `збито + подавлено + влучань ≤ запущено`, відбій пізніше початку, отримувач документа — пункт управління, `due_at = received_at + норматив`.
 - Імпорт — одна транзакція: помилка в будь-якому рядку → не вноситься нічого, повертається список «рядок / поле / причина».
+- Захист запису (v3.4): якщо в `.env` задано `ENTRY_TOKEN`, `POST /api/entry/*`, `POST /api/import/*` і `DELETE /api/entry/*` вимагають заголовок `X-Entry-Token` (порівняння сталого часу), інакше 401. Фронтенд запитує код і тримає його в `sessionStorage`. Порожній `ENTRY_TOKEN` — без коду (локальний стенд, сервер слухає лише `localhost`).
 
 **Вимоги:**
 - лише параметризований SQL;
 - Pydantic-моделі, OpenAPI на `/docs`;
-- FastAPI роздає фронтенд на порту 8000;
+- FastAPI роздає фронтенд на порту 8000 (сторінки `/`, `/print`, статичні файли); запуск — `uvicorn backend.app.main:app`;
 - період ≤ 366 днів, `limit ≤ 1000`;
 - відповідь до 500 мс;
-- тести `pytest` + `httpx` для кожного ендпоінту (зараз 63).
+- тести `pytest` + `httpx` для кожного ендпоінту (зараз 85).
 
 **Агрегати втрат:** для зрізу «підрозділ × доба» значення 1–4 повертаються як `"<5"`. Так навіть у синтетичних даних відпрацьовується практика неоприлюднення малих чисел.
 
@@ -577,17 +597,17 @@ CREATE TABLE incoming_documents (
 
 | Шрифт | Статус | Призначення |
 |---|---|---|
-| **Volja** (= «UAF Sans», підтверджено замовником) Regular 400, Black 900 | підключено: `frontend/fonts/Volja-Regular.woff2/.ttf`, `Volja-Black.ttf`, `frontend/css/fonts.css` | **увесь інтерфейс**: заголовки, KPI, текст, таблиці, осі, легенди, tooltip |
-| Запасний | `"Segoe UI", system-ui, Roboto, Arial, sans-serif` | підставляє гліфи, яких немає у Volja |
+| **Volja** (= «UAF Sans», підтверджено замовником) Regular 400, Black 900 | підключено: `frontend/fonts/Volja-Regular.woff2/.ttf`, `Volja-Black.ttf`, `frontend/css/fonts.css` | заголовки, вкладки, кнопки, підписи фільтрів, KPI, назви графіків, заголовки таблиць, осі й легенди графіків, підписи знаків (`--font-display`) |
+| Текстовий | `"Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif` | описи розділів, легенда «Умовні позначення», клітинки таблиць, форми, спливні вікна (`--font-body`); також підставляє гліфи, яких немає у Volja |
 
-Volja має лише великі літери, тому весь інтерфейс набрано капітеллю. Якщо для довгих таблиць знадобиться рядковий шрифт, достатньо змінити `--font-body` у `fonts.css`.
+Volja має лише великі літери. У v3.4 довгий текст переведено на текстовий шрифт: абзаци з великих літер важко читати (рішення від 09.11.2026). Межа задається змінними `--font-display` / `--font-body` у `fonts.css` (шаблон — `backend/scripts/build_frontend.py`).
 
 **Обмеження Volja (перевірено по файлах):**
 - У Regular немає гліфів `%`, `+`, `ʼ`.
 - У Black додатково немає `-`, `( )`, `/`, `« »`, `№`.
 - Тому стек завжди закінчується запасним шрифтом: браузер (і canvas Chart.js) підставляє відсутні знаки автоматично.
 
-**Реєстрація для графіків** (`frontend/js/fonts.js`):
+**Реєстрація для графіків** (`frontend/src/fonts.js`):
 1. `document.fonts.load()` для всіх накреслень, з таймаутом 3 с.
 2. Потім `Chart.defaults.font.family` = стек Volja + запасний.
 3. Кольори осей і tooltip беруться з CSS-токенів, при зміні теми застосовуються знову (`applyChartTheme`).
@@ -620,7 +640,7 @@ Volja має лише великі літери, тому весь інтерф�
 
 ### 10.1. Стек
 
-Vanilla JS (ES-модулі). Для офлайн-відкриття з `file://` — збірка в один класичний скрипт (`tools/build.py`, §4.4). Локально: Leaflet, Leaflet.markercluster, milsymbol, Chart.js 4; для Excel — SheetJS.
+Vanilla JS (ES-модулі). Для офлайн-відкриття з `file://` — збірка в один класичний скрипт (`backend/scripts/build_frontend.py`, §4.4). Локально: Leaflet, Leaflet.markercluster, milsymbol, Chart.js 4; для Excel — SheetJS.
 
 ### 10.2. Карта України
 
@@ -761,7 +781,7 @@ Vanilla JS (ES-модулі). Для офлайн-відкриття з `file://
 ### 10.7. Внесення даних (вкладка)
 
 - **Онлайн:** форма → `POST /api/entry/{kind}`; файл → перевірка `…/check` (таблиця помилок по рядках) → `POST /api/import/{kind}`. Після внесення кеш скидається, графіки і «станом на» оновлюються.
-- **Офлайн:** ті самі перевірки в браузері (`js/entries-store.js`), записи в `localStorage`, одразу видно в графіках і на карті. Кнопки «Вивантажити .sql» і «Вивантажити .json».
+- **Офлайн:** ті самі перевірки в браузері (`src/entries-store.js`), записи в `localStorage`, одразу видно в графіках і на карті. Кнопки «Вивантажити .sql» і «Вивантажити .json».
 - **Шаблони:** CSV (UTF-8 BOM, «;») і XLSX із заголовками-ключами та рядком-прикладом; Excel розбирається SheetJS у браузері.
 
 ---
@@ -778,26 +798,26 @@ Vanilla JS (ES-модулі). Для офлайн-відкриття з `file://
 
 ```
 Analytics-Dashboard/
-  docker-compose.yml  .env.example  README.md  TZ.md
-  Шрифт/                       -- вихідні файли шрифтів від замовника (не в білд)
-  db/
-    init/01_schema.sql  init/02_views.sql  init/03_seed.sql
-    generate_seed.py  oblasts_ref.py  dashboard_dump.sql
-    sources/ukraine-oblasts.geojson  sources/deepstate.json  sources/update_deepstate.py
-  backend/
-    Dockerfile  requirements.txt  export_snapshot.py
+  docker-compose.yml  .env.example  README.md  ІНСТРУКЦІЯ.md  TZ.md  PROGRESS.md
+  backend/                             -- СЕРВЕРНА ЧАСТИНА
+    Dockerfile  requirements.txt
     app/main.py config.py db.py schemas.py filters.py labels.py sidc.py geo.py snapshot.py
     app/routers/  meta kpi air artillery losses docs map journal entry common
+    database/
+      init/01_schema.sql  init/02_views.sql  init/03_seed.sql
+      dashboard_dump.sql  generate_seed.py  oblasts_ref.py
+      sources/ukraine-oblasts.geojson  deepstate.json  basemap.json  update_deepstate.py  update_basemap.py
+    scripts/build_frontend.py  scripts/export_snapshot.py
     tests/test_api.py
-  tools/build.py                -- збірка офлайн-версії (bundle.js, geo.js, шрифти в CSS)
-  frontend/
+  frontend/                            -- КЛІЄНТСЬКА ЧАСТИНА
     index.html  print.html
+    src/   app.js api.js offline.js entries-store.js entry.js datefield.js state.js format.js fonts.js
+           kpi.js map.js symbols.js journal.js print.js charts/{common,air,artillery,losses,docs}.js
+    js/    bundle.js  print.bundle.js   -- збірка з src/ (не редагувати)
     css/tokens.css  css/fonts.css  css/style.css
     fonts/  Volja-Regular.woff2  Volja-Regular.ttf  Volja-Black.ttf
     vendor/  leaflet, markercluster, milsymbol, chart.js, sheetjs
-    data/dataset.js  data/geo.js  -- знімок бази й геодані для офлайну
-    js/ api.js offline.js entries-store.js entry.js state.js format.js fonts.js kpi.js map.js symbols.js
-        charts/{common,air,artillery,losses,docs}.js  journal.js  print.js  app.js  (bundle.js — збірка)
+    data/dataset.js  data/geo.js  data/basemap.js   -- знімок бази й геодані для офлайну
 ```
 
 ## 13. Етапи та критерії приймання
@@ -838,7 +858,7 @@ Analytics-Dashboard/
 ## 15. Що потрібно від замовника
 
 1. ~~Файли UAF Sans~~ — **закрито**: Volja і є «UAF Sans» (07.11.2026).
-2. ~~Типи документів і нормативи ОКП~~ — **закрито**: лишаються умовними (07.11.2026). Щоб змінити, достатньо оновити `NORMS` у генераторі (`db/generate_seed.py`).
+2. ~~Типи документів і нормативи ОКП~~ — **закрито**: лишаються умовними (07.11.2026). Щоб змінити, достатньо оновити `NORMS` у генераторі (`backend/database/generate_seed.py`).
 3. ~~Скорочення джерел інформації~~ — **закрито**: внесено повний перелік п. 2.2.15 (27 кодів).
 4. Підтвердити, що використання відкритих даних DeepStateMap (з атрибуцією) для навчального проєкту прийнятне.
 

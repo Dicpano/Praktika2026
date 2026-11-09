@@ -12,7 +12,7 @@ from .docs import OVERDUE
 
 router = APIRouter(prefix="/api/map", tags=["Карта"])
 
-DEEPSTATE = config.ROOT / "db" / "sources" / "deepstate.json"
+DEEPSTATE = config.SOURCES_DIR / "deepstate.json"
 
 # Умовна штатна чисельність для розрахунку рівня боєздатності (синтетичні значення)
 NOMINAL = {"command": 200, "corps": 300, "brigade": 400, "regiment": 800, "battalion": 450, "company": 100}

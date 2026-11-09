@@ -56,8 +56,10 @@ section.page.active { display: block; }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--uaf-gold);
   padding: 16px; border-radius: 2px; }
 .kpi .kpi-label { font-size: 13px; color: var(--text-muted); }
-.kpi .kpi-value { font-size: 40px; font-weight: 900; line-height: 1.1; margin: 4px 0; }
-.kpi .kpi-value small { font-size: 16px; font-weight: 400; margin-left: 4px; }
+/* Одиниця виміру переноситься на новий рядок, якщо число довге (не обрізається краєм картки) */
+.kpi .kpi-value { font-size: 40px; font-weight: 900; line-height: 1.1; margin: 4px 0;
+  display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; min-width: 0; }
+.kpi .kpi-value small { font-size: 16px; font-weight: 400; white-space: nowrap; }
 .kpi .kpi-value.na { font-size: 22px; line-height: 1.6; color: var(--text-muted); }
 .kpi .kpi-delta { font-size: 12px; color: var(--text-muted); }
 .kpi .kpi-delta .good { color: var(--c-sea); } .kpi .kpi-delta .bad { color: var(--c-red); }
@@ -119,8 +121,9 @@ tr.overdue td { background: color-mix(in srgb, var(--c-red) 10%, transparent); }
 .city i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%;
   background: #4A4A4A; border: 1px solid #fff; box-sizing: border-box; }
 .city i.cap { left: -4px; top: -4px; width: 8px; height: 8px; background: #000; }
-.city span { position: absolute; left: 6px; top: -8px; font: 600 11px "Segoe UI", Arial, sans-serif; line-height: 16px; color: #333;
-  text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff; }
+.city span { position: absolute; left: 6px; top: -8px; font: 600 11px "Segoe UI", Arial, sans-serif; line-height: 16px; color: #222;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff; }
+.city i { box-shadow: 0 0 0 1px rgba(255,255,255,.8); }
 .map-legend { margin-top: 16px; }
 .map-legend td.sym-cell { width: 72px; text-align: center; }
 .map-legend td.sym-cell svg { max-width: 64px; max-height: 40px; }
@@ -182,7 +185,9 @@ footer.foot { padding: 16px 24px; color: var(--text-muted); font-size: 12px; bor
 .fcell.wide { grid-column: 1 / -1; }
 .fcell input, .fcell select { font: inherit; padding: 4px 6px; border: 1px solid var(--border); border-radius: 2px; background: var(--surface); color: var(--text); min-height: 30px; }
 .fcell .req { color: var(--c-red); }
-.ferr { font-size: 12px; color: var(--c-red); min-height: 0; }
+/* Рядок під підказку зарезервовано: інакше підказка «за координатами: …», що з’являється при виході з поля,
+   зсуває кнопку «Внести запис» між натисканням і відпусканням миші, і клік не спрацьовує */
+.ferr { font-size: 12px; color: var(--c-red); min-height: 1.4em; line-height: 1.4; }
 .chk { display: flex; gap: 6px; align-items: center; }
 .row-btns[hidden] { display: none; }
 .row-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px; }
@@ -201,3 +206,16 @@ tr.bad td { background: rgba(229,36,33,.08); }
   .map-panel { position: static; max-width: none; background: var(--header-bg); }
   .heat { font-size: 9px; }
 }
+
+/* Поле дати ДД.ММ.РРРР: текст + кнопка календаря (datefield.js) */
+.dfield { position: relative; display: inline-flex; align-items: stretch; }
+.dfield .dtext { width: 100%; min-width: 0; padding-right: 30px; font-variant-numeric: tabular-nums; }
+.filters .dfield .dtext { width: 12ch; }
+.dfield .dtext[data-time="1"] { min-width: 17ch; }
+.dfield .dtext[aria-invalid="true"] { border-color: var(--c-red); outline-color: var(--c-red); }
+.dfield .dpick { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.dfield .dbtn { position: absolute; right: 1px; top: 1px; bottom: 1px; width: 28px; border: 0; background: transparent;
+  color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.dfield .dbtn:hover { color: var(--text); }
+.dfield .dbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.fcell .dfield { display: flex; }

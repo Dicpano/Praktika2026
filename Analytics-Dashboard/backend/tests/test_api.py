@@ -236,3 +236,20 @@ def test_counter_battery_rules(client):
         "detected_at": "2026-10-20 10:00", "detected_by": "radar", "enemy_system": "howitzer", "lat": 48.62,
         "lon": 38.12, "responded_at": "2026-10-20 09:50"})
     assert bad.status_code == 422 and bad.json()["detail"]["errors"][0]["field"] == "responded_at"
+
+
+def test_entry_token_required(client, monkeypatch):
+    """Якщо задано ENTRY_TOKEN, запис без коду або з неправильним кодом відхиляється (401)."""
+    from backend.app import config
+    monkeypatch.setattr(config, "ENTRY_TOKEN", "secret-140")
+    assert client.post("/api/entry/strike", json={}).status_code == 401
+    assert client.post("/api/entry/strike", json={}, headers={"X-Entry-Token": "wrong"}).status_code == 401
+    assert client.delete("/api/entry/strike/1", headers={"X-Entry-Token": "wrong"}).status_code == 401
+    # з правильним кодом запит доходить до перевірки полів (422 — порожня форма)
+    assert client.post("/api/entry/strike", json={}, headers={"X-Entry-Token": "secret-140"}).status_code == 422
+    assert client.get("/api/entry/spec").json()["_auth"]["token_required"] is True
+
+
+def test_pages_served(client):
+    assert client.get("/print").status_code == 200
+    assert client.get("/js/bundle.js").status_code == 200

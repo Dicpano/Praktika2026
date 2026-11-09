@@ -1,9 +1,9 @@
-/* Зібрано tools/build.py з модулів frontend/js/*.js. Не редагувати вручну. */
+/* Зібрано backend/scripts/build_frontend.py з модулів frontend/src/*.js. Не редагувати вручну. */
 (function () {
 'use strict';
 const __M = {};
-// ---- js/state.js ----
-__M["js/state.js"] = (function () {
+// ---- state.js ----
+__M["state.js"] = (function () {
 // Глобальний стан фільтрів. Дублюється в URL (?date_from=…&oblast=…#air), щоб посиланням можна було поділитися.
 
 const listeners = new Set();
@@ -68,8 +68,8 @@ function filterCaption() {
 
 return { state, initFromUrl, query, setFilters, toggleOblast, onChange, label, oblastName, filterCaption };
 })();
-// ---- js/entries-store.js ----
-__M["js/entries-store.js"] = (function () {
+// ---- entries-store.js ----
+__M["entries-store.js"] = (function () {
 // Записи, внесені без сервера (офлайн-режим): зберігаються в localStorage цього браузера.
 // Перевірки повторюють backend/app/routers/entry.py. Записи можна вивантажити:
 //   • .sql  — INSERT-и для PostgreSQL (psql -f entries.sql), з пошуком id за кодами довідників;
@@ -290,7 +290,8 @@ function validate(kind, raw, db, findOblast, n = 1) {
     if (db.d.units.some((u) => u.short_name.toLowerCase() === v.short_name.toLowerCase())) throw new RowError('short_name', 'підрозділ з такою назвою вже існує');
     const ECH = { company: 'E', battalion: 'F', regiment: 'G', brigade: 'H', corps: 'J', command: 'K' };
     const FN = { mech: 'UCIZ--', tank: 'UCA---', artillery: 'UCF---', air_defense: 'UCD---', airborne: 'UCIA--', support: 'USS---',
-      hq: 'UH----', recon: 'UCR---', marine: 'UCIN--' };
+      hq: 'UH----', recon: 'UCR---', marine: 'UCIN--', training: 'UCI---', signal: 'UUS---', engineer: 'UCE---',
+      maintenance: 'USX---', medical: 'USM---' };
     const sidc = `SFGP${FN[v.branch]}${v.branch === 'hq' ? 'A' : '-'}${ECH[v.echelon]}---`;
     const id = Math.max(1000, ...db.d.units.map((u) => u.id)) + 1;
     Object.assign(row, { id, short_name: v.short_name, name_ua: v.name_ua, echelon: v.echelon, branch: v.branch,
@@ -380,8 +381,8 @@ function exportSql() {
 
 return { localEntries, removeLocal, clearLocal, caliberClass, RowError, validate, addLocal, exportJson, exportSql };
 })();
-// ---- js/offline.js ----
-__M["js/offline.js"] = (function () {
+// ---- offline.js ----
+__M["offline.js"] = (function () {
 // Офлайн-режим: ті самі відповіді, що й FastAPI, але обчислені в браузері зі знімка бази
 // (data/dataset.js → window.DATASET). Використовується, коли index.html відкрито як файл (file://)
 // або сервер API недоступний. Логіка повторює SQL з backend/app/routers/*.py.
@@ -389,7 +390,7 @@ __M["js/offline.js"] = (function () {
 // Час у знімку — «київський настінний» у секундах від 1970-01-01, тому доба/година/день тижня
 // рахуються простим діленням; тривалості — у реальному часі (з урахуванням переходу на літній час).
 /* global DATASET */
-const { localEntries, caliberClass } = __M["js/entries-store.js"];
+const { localEntries, caliberClass } = __M["entries-store.js"];
 const DAY = 86400;
 let DB = null;
 
@@ -1054,14 +1055,14 @@ const db = () => init();
 
 return { init, reload, dayIso, kyivIso, exportCsv, handle, db };
 })();
-// ---- js/api.js ----
-__M["js/api.js"] = (function () {
+// ---- api.js ----
+__M["api.js"] = (function () {
 // Джерело даних дашборду. Два режими з однаковими відповідями:
 //   • online  — FastAPI + PostgreSQL (сторінку відкрито з http://…, сервер відповідає);
 //   • offline — знімок бази data/dataset.js, обчислення в браузері (сторінку відкрито як файл
 //               або сервер недоступний). Так дашборд відкривається на будь-якому комп'ютері.
-const { query } = __M["js/state.js"];
-const offline = __M["js/offline.js"];
+const { query } = __M["state.js"];
+const offline = __M["offline.js"];
 const cache = new Map();
 let modePromise = null;
 
@@ -1117,13 +1118,34 @@ async function get(path, extra = {}, { filters = true } = {}) {
   return p;
 }
 
-async function post(path, body, { csv = false } = {}) {
+// Код доступу для внесення даних (якщо на сервері задано ENTRY_TOKEN). Зберігається лише до закриття вкладки.
+const TOKEN_KEY = 'entry-token';
+function readToken() { try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
+function saveToken(v) { try { if (v) sessionStorage.setItem(TOKEN_KEY, v); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } }
+
+async function write(method, url, body, headers = {}) {
   clearCache();
-  return csv ? http('POST', `/api/${path}`, body, { 'Content-Type': 'text/csv; charset=utf-8' })
-    : http('POST', `/api/${path}`, JSON.stringify(body), { 'Content-Type': 'application/json' });
+  for (let attempt = 0; ; attempt += 1) {
+    const token = readToken();
+    try {
+      return await http(method, url, body, token ? { ...headers, 'X-Entry-Token': token } : headers);
+    } catch (e) {
+      if (e.status !== 401 || attempt >= 2) throw e;
+      saveToken('');
+      const v = window.prompt(attempt ? 'Код неправильний. Введіть код доступу для внесення даних:'
+        : 'Для внесення даних потрібен код доступу (ENTRY_TOKEN з файлу .env):');
+      if (!v) throw e;
+      saveToken(v.trim());
+    }
+  }
 }
 
-async function del(path) { clearCache(); return http('DELETE', `/api/${path}`); }
+async function post(path, body, { csv = false } = {}) {
+  return csv ? write('POST', `/api/${path}`, body, { 'Content-Type': 'text/csv; charset=utf-8' })
+    : write('POST', `/api/${path}`, JSON.stringify(body), { 'Content-Type': 'application/json' });
+}
+
+async function del(path) { return write('DELETE', `/api/${path}`); }
 
 function clearCache() { cache.clear(); }
 
@@ -1146,8 +1168,8 @@ function saveFile(name, text, type) {
 
 return { mode, get, post, del, clearCache, csvUrl, downloadCsv, saveFile };
 })();
-// ---- js/format.js ----
-__M["js/format.js"] = (function () {
+// ---- format.js ----
+__M["format.js"] = (function () {
 // Формати: числа uk-UA (пробіл між тисячами, десяткова кома), час «ГГ.ХХ ДД.ММ.РРРР» за київським часом
 // (п. 2.1.1 Порядку). Відсутні значення — «немає відом.» (п. 2.3.6).
 
@@ -1196,12 +1218,12 @@ function isUnverified(rel) { return !!rel && /[4-6]$/.test(rel); }
 
 return { NO_DATA, num, dtg, d, dShort, minutes, esc, isUnverified };
 })();
-// ---- js/print.js ----
-__M["js/print.js"] = (function () {
+// ---- print.js ----
+__M["print.js"] = (function () {
 // Друкована довідка: ті самі фільтри, що й у дашборді (параметри URL). Таблиці за п. 2.3 Порядку.
-const { get } = __M["js/api.js"];
-const { state, initFromUrl, label } = __M["js/state.js"];
-const { d, dtg, esc, minutes, num, NO_DATA } = __M["js/format.js"];
+const { get } = __M["api.js"];
+const { state, initFromUrl, label } = __M["state.js"];
+const { d, dtg, esc, minutes, num, NO_DATA } = __M["format.js"];
 let tableNo = 0;
 function table(title, cols, rows) {
   tableNo += 1;

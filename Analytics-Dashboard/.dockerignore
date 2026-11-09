@@ -3,8 +3,9 @@
 .venv
 **/__pycache__
 **/.pytest_cache
-Шрифт
-db/*
-!db/sources
-tools
+backend/database/*
+!backend/database/sources
+backend/tests
+frontend/src
 *.md
+.vscode

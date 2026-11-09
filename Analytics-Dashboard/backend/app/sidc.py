@@ -1,4 +1,4 @@
-"""Коди знаків (MIL-STD-2525C, 15 символів) для milsymbol. Правила кольору/накладань — у frontend/js/symbols.js."""
+"""Коди знаків (MIL-STD-2525C, 15 символів) для milsymbol. Правила кольору/накладань — у frontend/src/symbols.js."""
 
 ART_FN = {  # система → функція обладнання; останній символ: клас калібру (L/M/H)
     "mortar": "EWO{c}--", "howitzer": "EWH{c}--", "gun": "EWG{c}--", "mlrs": "EWR{c}--", "tank": "EVAT{c}-",

@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from . import config
 
-GEOJSON = config.ROOT / "db" / "sources" / "ukraine-oblasts.geojson"
+GEOJSON = config.SOURCES_DIR / "ukraine-oblasts.geojson"
 
 
 def _in_ring(x: float, y: float, ring) -> bool:
